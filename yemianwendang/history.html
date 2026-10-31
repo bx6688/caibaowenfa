@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>历史对话 - AI法律助手</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 主内容区域添加滚动条 */
+        .main-content {
+            overflow-y: auto;
+            height: calc(100vh - 60px); /* 减去header高度 */
+        }
+        
+        /* 自定义滚动条样式 */
+        .main-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .main-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .main-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .main-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .history-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .history-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .history-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .history-header p {
+            color: #6c757d;
+            font-size: 18px;
+        }
+        
+        .section-title {
+            color: #3498db;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        /* 历史对话列表样式 */
+        .conversation-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .conversation-item {
+            background-color: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .conversation-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .conversation-header {
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .conversation-header:hover {
+            background-color: #e9ecef;
+        }
+        
+        .conversation-title {
+            font-weight: bold;
+            color: #2c3e50;
+            flex: 1;
+        }
+        
+        .conversation-date {
+            color: #6c757d;
+            font-size: 14px;
+            margin-left: 15px;
+        }
+        
+        .conversation-content {
+            padding: 20px;
+            display: none;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .conversation-item.expanded .conversation-content {
+            display: block;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message.ai {
+            justify-content: flex-start;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 10px 15px;
+            border-radius: 10px;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-content {
+            background-color: #3498db;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message.ai .message-content {
+            background-color: #f1f1f1;
+            color: #2c3e50;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-time {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 60px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        /* 搜索框样式 */
+        .search-container {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 40px 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        /* 筛选器样式 */
+        .filter-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            font-size: 14px;
+        }
+        
+        .clear-all-btn {
+            background-color: transparent;
+            color: #dc3545;
+            border: 1px solid #dc3545;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-all-btn:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>AI助手</h3>
+                <button class="close-btn" id="close-sidebar">&times;</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="menu-section">
+                    <h4 class="section-title">首页</h4>
+                    <ul class="menu-list">
+                        <li><a href="index.html">返回首页</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">对话功能</h4>
+                    <ul class="menu-list">
+                        <li><a href="dialog.html">智能对话</a></li>
+                        <li><a href="history.html" class="active">历史对话</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">专业服务</h4>
+                    <ul class="menu-list">
+                        <li><a href="cases.html">案例检索</a></li>
+                        <li><a href="contracts.html">合同审查</a></li>
+                        <li><a href="overseas.html">企业出海</a></li>
+                        <li><a href="litigation.html">诉状生成</a></li>
+                        <li><a href="youth.html">14-25岁青少年专区</a></li>
+                        <li><a href="daily-quiz.html">每日一题</a></li>
+                            </ul>
+                        </div>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">☰</button>
+                <h2>历史对话</h2>
+            </div>
+            
+            <!-- 历史对话内容 -->
+            <div class="history-container">
+                <div class="history-header">
+                    <h1>历史对话记录</h1>
+                    <p>查看和管理您与AI法律助手的所有对话记录</p>
+                </div>
+                
+                <!-- 搜索和筛选 -->
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="搜索对话内容...">
+                    <span class="search-icon">🔍</span>
+                </div>
+                
+                <div class="filter-container">
+                    <select class="filter-select">
+                        <option value="all">所有对话</option>
+                        <option value="today">今天</option>
+                        <option value="week">本周</option>
+                        <option value="month">本月</option>
+                    </select>
+                    <button class="clear-all-btn">清空全部</button>
+                </div>
+                
+                <!-- 历史对话列表 -->
+                <ul class="conversation-list">
+                    <!-- 对话项 1 -->
+                    <li class="conversation-item">
+                        <div class="conversation-header">
+                            <span class="conversation-title">劳动合同纠纷咨询</span>
+                            <span class="conversation-date">2023-11-25</span>
+                        </div>
+                        <div class="conversation-content">
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>你好，我想咨询一下关于劳动合同的问题。我在公司工作了3年，最近公司要解除劳动合同，我可以获得多少赔偿？</p>
+                                    <div class="message-time">10:23</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>您好！关于劳动合同解除的赔偿问题，主要取决于解除的原因和方式：</p>
+                                    <p>1. 如果是公司单方面无正当理由解除劳动合同，您可以获得的赔偿为：N+1个月的工资，其中N是您在公司的工作年限，每满一年支付一个月工资。</p>
+                                    <p>2. 如果是双方协商一致解除，赔偿金额可以由双方协商确定。</p>
+                                    <p>3. 如果您存在严重违反公司规章制度等情形，公司可能无需支付赔偿。</p>
+                                    <p>需要注意的是，这里的月工资是指您在劳动合同解除或者终止前十二个月的平均工资。</p>
+                                    <div class="message-time">10:25</div>
+                                </div>
+                            </div>
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>如果公司没有提前30天通知我，需要额外支付一个月工资作为代通知金吗？</p>
+                                    <div class="message-time">10:28</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>是的，如果公司没有提前30天以书面形式通知解除劳动合同，确实需要额外支付一个月工资作为代通知金。这就是我们通常所说的"+1"部分。</p>
+                                    <p>所以在您的情况下，如果是公司无正当理由解除，您可以获得3+1=4个月工资的赔偿。</p>
+                                    <div class="message-time">10:30</div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- 对话项 2 -->
+                    <li class="conversation-item">
+                        <div class="conversation-header">
+                            <span class="conversation-title">消费者权益保护</span>
+                            <span class="conversation-date">2023-11-20</span>
+                        </div>
+                        <div class="conversation-content">
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>我在网上购买了一台手机，收到后发现屏幕有问题，联系卖家退货但被拒绝，我该怎么办？</p>
+                                    <div class="message-time">15:42</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>您好！根据《消费者权益保护法》的规定，您遇到的这种情况可以采取以下措施：</p>
+                                    <p>1. 保留相关证据，包括购买凭证、商品问题的照片或视频、与卖家的沟通记录等。</p>
+                                    <p>2. 再次与卖家协商，明确告知其根据法律规定，商品存在质量问题时消费者有权退货。</p>
+                                    <p>3. 如果协商不成，可以向电商平台投诉，要求平台介入处理。</p>
+                                    <p>4. 也可以向消费者协会投诉，或向市场监督管理部门举报。</p>
+                                    <p>5. 必要时，可以通过法律途径维护自己的权益，如向法院提起诉讼。</p>
+                                    <p>需要注意的是，根据《消费者权益保护法》第二十五条，除特殊商品外，网购商品在收到后七日内可以无理由退货。如果商品存在质量问题，则不受七日限制。</p>
+                                    <div class="message-time">15:45</div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- 对话项 3 -->
+                    <li class="conversation-item">
+                        <div class="conversation-header">
+                            <span class="conversation-title">交通事故责任认定</span>
+                            <span class="conversation-date">2023-11-15</span>
+                        </div>
+                        <div class="conversation-content">
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>你好，我前几天发生了一起交通事故，我正常行驶，对方闯红灯，结果撞到了我的车。交警认定对方全责，但对方拒绝赔偿，我该怎么办？</p>
+                                    <div class="message-time">09:15</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>您好！在这种情况下，您可以采取以下措施：</p>
+                                    <p>1. 保留所有相关证据，包括交通事故认定书、车辆损坏照片、医疗费用发票等。</p>
+                                    <p>2. 联系对方的保险公司，要求其在保险责任范围内进行赔偿。</p>
+                                    <p>3. 如果对方和其保险公司都拒绝赔偿，您可以向法院提起民事诉讼，要求对方承担赔偿责任。</p>
+                                    <p>4. 在诉讼过程中，交通事故认定书将作为重要证据，证明对方的全责。</p>
+                                    <p>另外，您也可以考虑申请道路交通事故社会救助基金，以解决紧急的医疗费用等问题。</p>
+                                    <div class="message-time">09:18</div>
+                                </div>
+                            </div>
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>如果我要起诉，需要准备哪些材料？</p>
+                                    <div class="message-time">09:20</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>起诉时需要准备的材料包括：</p>
+                                    <p>1. 起诉状：写明原被告的基本信息、诉讼请求、事实与理由。</p>
+                                    <p>2. 证据材料：交通事故认定书、医疗费发票、车辆维修发票、误工证明等。</p>
+                                    <p>3. 原被告的身份证明材料。</p>
+                                    <p>4. 如果委托律师，还需要提供授权委托书。</p>
+                                    <p>建议您在起诉前咨询专业律师，以获取更详细的法律建议和帮助。</p>
+                                    <div class="message-time">09:23</div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- 对话项 4 -->
+                    <li class="conversation-item">
+                        <div class="conversation-header">
+                            <span class="conversation-title">知识产权保护咨询</span>
+                            <span class="conversation-date">2023-11-10</span>
+                        </div>
+                        <div class="conversation-content">
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>你好，我写了一本小说，想了解一下如何保护我的著作权？</p>
+                                    <div class="message-time">14:30</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>您好！保护著作权的方式主要有以下几种：</p>
+                                    <p>1. 自动保护：根据我国《著作权法》，作品自创作完成之日起自动获得著作权，无需登记。</p>
+                                    <p>2. 著作权登记：虽然不是必须的，但进行著作权登记可以为您提供更强的法律保护，在发生侵权纠纷时更容易举证。</p>
+                                    <p>3. 保留创作证据：保存好作品的创作过程、草稿、发表记录等，以便在需要时证明您是作品的作者。</p>
+                                    <p>4. 合理使用声明：在作品中添加版权声明，明确表示未经许可不得转载、复制等。</p>
+                                    <p>5. 寻求法律帮助：如果发现有人侵权，可以通过发送律师函、提起诉讼等方式维护自己的权益。</p>
+                                    <div class="message-time">14:32</div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    
+                    <!-- 对话项 5 -->
+                    <li class="conversation-item">
+                        <div class="conversation-header">
+                            <span class="conversation-title">房产租赁合同纠纷</span>
+                            <span class="conversation-date">2023-11-05</span>
+                        </div>
+                        <div class="conversation-content">
+                            <div class="message user">
+                                <div class="message-content">
+                                    <p>你好，我租了一套房子，合同期是一年，但是现在才住了三个月，房东就要收回房子，我该怎么办？</p>
+                                    <div class="message-time">11:10</div>
+                                </div>
+                            </div>
+                            <div class="message ai">
+                                <div class="message-content">
+                                    <p>您好！根据《民法典》和《合同法》的相关规定，您遇到的情况可以采取以下措施：</p>
+                                    <p>1. 查看租赁合同：首先检查租赁合同中是否有关于房东提前收回房屋的条款，以及相应的违约责任。</p>
+                                    <p>2. 与房东协商：了解房东收回房屋的原因，尝试协商解决方案，如要求房东支付违约金、给予合理的搬迁时间等。</p>
+                                    <p>3. 拒绝搬离：如果房东没有正当理由提前收回房屋，您有权拒绝搬离，并要求房东继续履行合同。</p>
+                                    <p>4. 要求赔偿：如果房东强行收回房屋，给您造成损失，您可以要求房东承担赔偿责任。</p>
+                                    <p>5. 寻求法律帮助：如果协商不成，可以向当地的房屋租赁管理部门投诉，或向法院提起诉讼，维护自己的合法权益。</p>
+                                    <div class="message-time">11:12</div>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 历史对话展开/折叠功能
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取所有对话项
+            const conversationItems = document.querySelectorAll('.conversation-item');
+            
+            // 为每个对话项添加点击事件
+            conversationItems.forEach(item => {
+                const header = item.querySelector('.conversation-header');
+                
+                header.addEventListener('click', function() {
+                    // 切换展开/折叠状态
+                    item.classList.toggle('expanded');
+                });
+            });
+            
+            // 搜索功能
+            const searchInput = document.querySelector('.search-input');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                conversationItems.forEach(item => {
+                    const title = item.querySelector('.conversation-title').textContent.toLowerCase();
+                    const content = item.querySelector('.conversation-content').textContent.toLowerCase();
+                    
+                    if (title.includes(searchTerm) || content.includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+            
+            // 筛选功能
+            const filterSelect = document.querySelector('.filter-select');
+            
+            filterSelect.addEventListener('change', function() {
+                const filterValue = this.value;
+                const today = new Date();
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+                
+                conversationItems.forEach(item => {
+                    const dateText = item.querySelector('.conversation-date').textContent;
+                    const conversationDate = new Date(dateText);
+                    
+                    if (filterValue === 'all') {
+                        item.style.display = 'block';
+                    } else if (filterValue === 'today') {
+                        if (conversationDate.toDateString() === today.toDateString()) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    } else if (filterValue === 'week') {
+                        if (conversationDate >= weekAgo && conversationDate <= today) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    } else if (filterValue === 'month') {
+                        if (conversationDate >= monthAgo && conversationDate <= today) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                });
+            });
+            
+            // 清空全部功能
+            const clearAllBtn = document.querySelector('.clear-all-btn');
+            
+            clearAllBtn.addEventListener('click', function() {
+                if (confirm('确定要清空所有历史对话吗？此操作不可恢复。')) {
+                    // 在实际应用中，这里应该发送请求到服务器删除对话
+                    // 这里只是简单地隐藏所有对话项
+                    conversationItems.forEach(item => {
+                        item.style.display = 'none';
+                    });
+                    
+                    // 显示空状态提示
+                    const historyContainer = document.querySelector('.history-container');
+                    let emptyState = document.querySelector('.empty-state');
+                    
+                    if (!emptyState) {
+                        emptyState = document.createElement('div');
+                        emptyState.className = 'empty-state';
+                        emptyState.innerHTML = `
+                            <div>📝</div>
+                            <h3>暂无对话记录</h3>
+                            <p>开始与AI法律助手的对话吧！</p>
+                        `;
+                        historyContainer.appendChild(emptyState);
+                    } else {
+                        emptyState.style.display = 'block';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

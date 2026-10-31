@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>侧边菜单与对话框</title>
+    <link rel="stylesheet" href="styles.css?v=20261026b">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>AI助手</h3>
+            <button class="close-btn" id="close-sidebar">&times;</button>
+        </div>
+        <div class="sidebar-content">
+            <div class="menu-section">
+                <h4 class="section-title">首页</h4>
+                <ul class="menu-list">
+                    <li><a href="index.html" class="active">返回首页</a></li>
+                </ul>
+            </div>
+            <div class="menu-section">
+                <h4 class="section-title">对话功能</h4>
+                <ul class="menu-list">
+                    <li><a href="dialog.html">智能对话</a></li>
+                    <li><a href="history.html">历史对话</a></li>
+                </ul>
+            </div>
+            <div class="menu-section">
+                <h4 class="section-title">专业服务</h4>
+                <ul class="menu-list">
+                    <li><a href="cases.html">案例检索</a></li>
+                    <li><a href="contracts.html">合同审查</a></li>
+                    <li><a href="overseas.html">企业出海</a></li>
+                    <li><a href="litigation.html">诉状生成</a></li>
+                    <li><a href="youth.html">14-25岁青少年专区</a></li>
+                    <li><a href="daily-quiz.html">每日一题</a></li>
+            </ul>
+        </div>
+        </div>
+    </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">&#9776;</button>
+                <h2>财宝问法</h2>
+            </div>
+            
+            <!-- 首页中央内容 -->
+            <div class="home-container">
+                <div class="logo-container">
+                    <img src="home-picture.jpg" alt="AI法律助手" class="corgi-logo" id="corgi-logo">
+                    <h1 class="welcome-text">欢迎使用财宝问法</h1>
+                </div>
+                <div class="action-buttons">
+                    <a href="dialog.html" class="action-btn start-dialog-btn">开启对话</a>
+                    <a href="#" class="action-btn get-app-btn">获取APP</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>诉状生成 - AI法律助手</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 诉状生成页面特定样式 */
+        .litigation-container {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+
+        .litigation-steps {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            background-color: white;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+
+        .step:not(:last-child):after {
+            content: '';
+            position: absolute;
+            top: 25px;
+            right: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #e0e0e0;
+            z-index: 1;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            color: #777;
+            margin: 0 auto 10px;
+            position: relative;
+            z-index: 2;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .step.active .step-number {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .step.completed .step-number {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .step-label {
+            font-size: 14px;
+            color: #777;
+        }
+
+        .step.active .step-label {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .step.completed .step-label {
+            color: #2ecc71;
+        }
+
+        .form-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px 15px;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 250px;
+            padding: 0 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #777;
+            margin-top: 5px;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-prev {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+
+        .btn-prev:hover {
+            background-color: #e0e0e0;
+        }
+
+        .btn-next {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-next:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-generate {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .btn-generate:hover {
+            background-color: #27ae60;
+        }
+
+        .litigation-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .litigation-type {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .litigation-type:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .litigation-type.selected {
+            border-color: #3498db;
+            background-color: #ebf5fb;
+        }
+
+        .litigation-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #3498db;
+        }
+
+        .litigation-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .litigation-desc {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .preview-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .preview-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .preview-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .preview-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .preview-actions {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+                <div class="sidebar" id="sidebar">
+                    <div class="sidebar-header">
+                        <h3>AI助手</h3>
+                        <button class="close-btn" id="close-sidebar">&times;</button>
+                    </div>
+                    <div class="sidebar-content">
+                        <div class="menu-section">
+                            <h4 class="section-title">首页</h4>
+                            <ul class="menu-list">
+                                <li><a href="index.html">返回首页</a></li>
+                            </ul>
+                        </div>
+                        <div class="menu-section">
+                            <h4 class="section-title">对话功能</h4>
+                            <ul class="menu-list">
+                                <li><a href="dialog.html">智能对话</a></li>
+                                <li><a href="history.html">历史对话</a></li>
+                            </ul>
+                        </div>
+                        <div class="menu-section">
+                            <h4 class="section-title">专业服务</h4>
+                            <ul class="menu-list">
+                                <li><a href="cases.html">案例检索</a></li>
+                                <li><a href="contracts.html">合同审查</a></li>
+                                <li><a href="overseas.html">企业出海</a></li>
+                                <li><a href="litigation.html" class="active">诉状生成</a></li>
+                                <li><a href="youth.html">14-25岁青少年专区</a></li>
+                                <li><a href="daily-quiz.html">每日一题</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">&#9776;</button>
+                <h2>诉状生成</h2>
+            </div>
+            
+            <!-- 诉状生成内容 -->
+            <div class="litigation-container">
+                <!-- 步骤指示器 -->
+                <div class="litigation-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">选择诉讼类型</div>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">填写当事人信息</div>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">案件事实与理由</div>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-number">4</div>
+                        <div class="step-label">诉讼请求</div>
+                    </div>
+                    <div class="step" data-step="5">
+                        <div class="step-number">5</div>
+                        <div class="step-label">预览与生成</div>
+                    </div>
+                </div>
+                
+                <!-- 步骤1：选择诉讼类型 -->
+                <div class="form-section" id="step-1">
+                    <div class="form-section-title">选择诉讼类型</div>
+                    <p>请选择您需要生成的诉状类型：</p>
+                    
+                    <div class="litigation-types">
+                        <div class="litigation-type selected" data-type="labor">
+                            <div class="litigation-icon">👷</div>
+                            <div class="litigation-name">劳动争议</div>
+                            <div class="litigation-desc">工资、福利、解雇等劳动纠纷</div>
+                        </div>
+                        
+                        <div class="litigation-type" data-type="contract">
+                            <div class="litigation-icon">📝</div>
+                            <div class="litigation-name">合同纠纷</div>
+                            <div class="litigation-desc">买卖、租赁、服务等合同争议</div>
+                        </div>
+                        
+                        <div class="litigation-type" data-type="property">
+                            <div class="litigation-icon">🏠</div>
+                            <div class="litigation-name">房产纠纷</div>
+                            <div class="litigation-desc">房屋买卖、租赁、物业等争议</div>
+                        </div>
+                        
+                        <div class="litigation-type" data-type="debt">
+                            <div class="litigation-icon">💰</div>
+                            <div class="litigation-name">债务纠纷</div>
+                            <div class="litigation-desc">借贷、欠款等债务争议</div>
+                        </div>
+                        
+                        <div class="litigation-type" data-type="ip">
+                            <div class="litigation-icon">©️</div>
+                            <div class="litigation-name">知识产权</div>
+                            <div class="litigation-desc">著作权、商标、专利等纠纷</div>
+                        </div>
+                        
+                        <div class="litigation-type" data-type="divorce">
+                            <div class="litigation-icon">💔</div>
+                            <div class="litigation-name">离婚诉讼</div>
+                            <div class="litigation-desc">离婚、财产分割、子女抚养</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <div></div> <!-- 占位，保持右对齐 -->
+                        <button class="btn btn-next" id="step1-next">下一步</button>
+                    </div>
+                </div>
+                
+                <!-- 步骤2：填写当事人信息 (默认隐藏) -->
+                <div class="form-section" id="step-2" style="display: none;">
+                    <div class="form-section-title">填写当事人信息</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>原告类型</label>
+                            <select id="plaintiff-type">
+                                <option value="individual">个人</option>
+                                <option value="company">公司/组织</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>原告姓名/名称</label>
+                            <input type="text" id="plaintiff-name" placeholder="请输入原告姓名或公司名称">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>原告联系地址</label>
+                            <input type="text" id="plaintiff-address" placeholder="请输入原告联系地址">
+                        </div>
+                        <div class="form-group">
+                            <label>原告联系电话</label>
+                            <input type="text" id="plaintiff-phone" placeholder="请输入原告联系电话">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>被告类型</label>
+                            <select id="defendant-type">
+                                <option value="individual">个人</option>
+                                <option value="company">公司/组织</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>被告姓名/名称</label>
+                            <input type="text" id="defendant-name" placeholder="请输入被告姓名或公司名称">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>被告联系地址</label>
+                            <input type="text" id="defendant-address" placeholder="请输入被告联系地址">
+                        </div>
+                        <div class="form-group">
+                            <label>被告联系电话</label>
+                            <input type="text" id="defendant-phone" placeholder="请输入被告联系电话">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn btn-prev" id="step2-prev">上一步</button>
+                        <button class="btn btn-next" id="step2-next">下一步</button>
+                    </div>
+                </div>
+                
+                <!-- 步骤3：案件事实与理由 (默认隐藏) -->
+                <div class="form-section" id="step-3" style="display: none;">
+                    <div class="form-section-title">案件事实与理由</div>
+                    
+                    <div class="form-group">
+                        <label>案件基本情况</label>
+                        <textarea id="case-facts" placeholder="请详细描述案件的基本情况，包括时间、地点、事件经过等"></textarea>
+                        <div class="hint">提示：详细的事实描述有助于生成更准确的诉状</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>证据材料</label>
+                        <textarea id="case-evidence" placeholder="请列举您拥有的证据材料，如合同、收据、录音、证人证言等"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>法律依据</label>
+                        <textarea id="case-legal-basis" placeholder="如果您了解相关法律依据，请在此填写，否则AI将自动为您匹配适用法条"></textarea>
+                        <div class="hint">提示：可以留空，AI将根据案件情况自动推荐适用法条</div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn btn-prev" id="step3-prev">上一步</button>
+                        <button class="btn btn-next" id="step3-next">下一步</button>
+                    </div>
+                </div>
+                
+                <!-- 步骤4：诉讼请求 (默认隐藏) -->
+                <div class="form-section" id="step-4" style="display: none;">
+                    <div class="form-section-title">诉讼请求</div>
+                    
+                    <div class="form-group">
+                        <label>主要诉讼请求</label>
+                        <textarea id="litigation-requests" placeholder="请详细描述您的诉讼请求，如要求被告支付欠款、赔偿损失、停止侵权行为等"></textarea>
+                        <div class="hint">提示：诉讼请求应当明确、具体，并与案件事实相符</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>赔偿金额/其他具体请求</label>
+                        <input type="text" id="compensation-amount" placeholder="如有具体赔偿金额或其他具体请求，请在此填写">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>其他请求</label>
+                        <textarea id="other-requests" placeholder="其他诉讼请求，如要求被告承担诉讼费用等"></textarea>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button class="btn btn-prev" id="step4-prev">上一步</button>
+                        <button class="btn btn-next" id="step4-next">下一步</button>
+                    </div>
+                </div>
+                
+                <!-- 步骤5：预览与生成 (默认隐藏) -->
+                <div class="form-section" id="step-5" style="display: none;">
+                    <div class="form-section-title">预览与生成</div>
+                    
+                    <div class="preview-section">
+                        <div class="preview-header">
+                            <div class="preview-title">民事起诉状</div>
+                            <div>(预览版)</div>
+                        </div>
+                        
+                        <div class="preview-content" id="preview-content">
+                            <!-- 诉状内容将通过JavaScript动态生成 -->
+                            <p><strong>原告：</strong>[原告姓名]，[原告地址]</p>
+                            <p><strong>被告：</strong>[被告姓名]，[被告地址]</p>
+                            <p><strong>诉讼请求：</strong></p>
+                            <p>1. [诉讼请求1]</p>
+                            <p>2. [诉讼请求2]</p>
+                            <p><strong>事实与理由：</strong></p>
+                            <p>[案件事实与理由详细描述]</p>
+                            <p>此致</p>
+                            <p>[法院名称]</p>
+                            <p style="text-align: right;">具状人：[原告姓名]</p>
+                            <p style="text-align: right;">[日期]</p>
+                        </div>
+                    </div>
+                    
+                    <div class="preview-actions">
+                        <button class="btn btn-prev" id="step5-prev">上一步</button>
+                        <button class="btn btn-generate" id="generate-btn">生成完整诉状</button>
+                        <button class="btn btn-next" id="download-btn">下载Word文档</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 诉状生成页面特定的JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取步骤元素
+            const steps = document.querySelectorAll('.step');
+            const formSections = document.querySelectorAll('.form-section');
+            
+            // 获取按钮元素
+            const step1Next = document.getElementById('step1-next');
+            const step2Prev = document.getElementById('step2-prev');
+            const step2Next = document.getElementById('step2-next');
+            const step3Prev = document.getElementById('step3-prev');
+            const step3Next = document.getElementById('step3-next');
+            const step4Prev = document.getElementById('step4-prev');
+            const step4Next = document.getElementById('step4-next');
+            const step5Prev = document.getElementById('step5-prev');
+            const generateBtn = document.getElementById('generate-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            
+            // 诉讼类型选择
+            const litigationTypes = document.querySelectorAll('.litigation-type');
+            
+            // 当前步骤
+            let currentStep = 1;
+            
+            // 更新步骤显示
+            function updateSteps(newStep) {
+                // 更新步骤指示器
+                steps.forEach(step => {
+                    const stepNum = parseInt(step.dataset.step);
+                    step.classList.remove('active', 'completed');
+                    
+                    if (stepNum === newStep) {
+                        step.classList.add('active');
+                    } else if (stepNum < newStep) {
+                        step.classList.add('completed');
+                    }
+                });
+                
+                // 更新表单显示
+                formSections.forEach((section, index) => {
+                    if (index + 1 === newStep) {
+                        section.style.display = 'block';
+                    } else {
+                        section.style.display = 'none';
+                    }
+                });
+                
+                // 更新当前步骤
+                currentStep = newStep;
+                
+                // 滚动到顶部
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            
+            // 诉讼类型选择事件
+            litigationTypes.forEach(type => {
+                type.addEventListener('click', function() {
+                    // 移除所有选中状态
+                    litigationTypes.forEach(t => t.classList.remove('selected'));
+                    // 添加选中状态
+                    this.classList.add('selected');
+                });
+            });
+            
+            // 步骤1：下一步按钮
+            if (step1Next) {
+                step1Next.addEventListener('click', function() {
+                    updateSteps(2);
+                });
+            }
+            
+            // 步骤2：上一步按钮
+            if (step2Prev) {
+                step2Prev.addEventListener('click', function() {
+                    updateSteps(1);
+                });
+            }
+            
+            // 步骤2：下一步按钮
+            if (step2Next) {
+                step2Next.addEventListener('click', function() {
+                    updateSteps(3);
+                });
+            }
+            
+            // 步骤3：上一步按钮
+            if (step3Prev) {
+                step3Prev.addEventListener('click', function() {
+                    updateSteps(2);
+                });
+            }
+            
+            // 步骤3：下一步按钮
+            if (step3Next) {
+                step3Next.addEventListener('click', function() {
+                    updateSteps(4);
+                });
+            }
+            
+            // 步骤4：上一步按钮
+            if (step4Prev) {
+                step4Prev.addEventListener('click', function() {
+                    updateSteps(3);
+                });
+            }
+            
+            // 步骤4：下一步按钮
+            if (step4Next) {
+                step4Next.addEventListener('click', function() {
+                    // 生成预览内容
+                    generatePreview();
+                    updateSteps(5);
+                });
+            }
+            
+            // 步骤5：上一步按钮
+            if (step5Prev) {
+                step5Prev.addEventListener('click', function() {
+                    updateSteps(4);
+                });
+            }
+            
+            // 生成完整诉状按钮
+            if (generateBtn) {
+                generateBtn.addEventListener('click', function() {
+                    alert('正在生成完整诉状，请稍候...');
+                    // 模拟生成过程
+                    setTimeout(() => {
+                        alert('诉状生成成功！您可以查看预览或下载Word文档。');
+                    }, 1500);
+                });
+            }
+            
+            // 下载Word文档按钮
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', function() {
+                    alert('正在准备下载Word文档...');
+                });
+            }
+            
+            // 生成预览内容
+            function generatePreview() {
+                const previewContent = document.getElementById('preview-content');
+                if (!previewContent) return;
+                
+                // 获取表单数据
+                const plaintiffName = document.getElementById('plaintiff-name').value || '[原告姓名]';
+                const plaintiffAddress = document.getElementById('plaintiff-address').value || '[原告地址]';
+                const defendantName = document.getElementById('defendant-name').value || '[被告姓名]';
+                const defendantAddress = document.getElementById('defendant-address').value || '[被告地址]';
+                const caseFacts = document.getElementById('case-facts').value || '[案件事实与理由详细描述]';
+                const litigationRequests = document.getElementById('litigation-requests').value || '[诉讼请求]';
+                
+                // 格式化诉讼请求
+                let requestsHtml = '';
+                if (litigationRequests) {
+                    const requests = litigationRequests.split('\n').filter(r => r.trim() !== '');
+                    requests.forEach((request, index) => {
+                        requestsHtml += `<p>${index + 1}. ${request}</p>`;
+                    });
+                } else {
+                    requestsHtml = '<p>1. [诉讼请求1]</p><p>2. [诉讼请求2]</p>';
+                }
+                
+                // 获取当前日期
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = today.getMonth() + 1;
+                const day = today.getDate();
+                const dateStr = `${year}年${month}月${day}日`;
+                
+                // 更新预览内容
+                previewContent.innerHTML = `
+                    <p><strong>原告：</strong>${plaintiffName}，${plaintiffAddress}</p>
+                    <p><strong>被告：</strong>${defendantName}，${defendantAddress}</p>
+                    <p><strong>诉讼请求：</strong></p>
+                    ${requestsHtml}
+                    <p><strong>事实与理由：</strong></p>
+                    <p>${caseFacts}</p>
+                    <p>此致</p>
+                    <p>人民法院</p>
+                    <p style="text-align: right;">具状人：${plaintiffName}</p>
+                    <p style="text-align: right;">${dateStr}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

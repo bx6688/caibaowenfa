@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合同审查 - AI法律助手</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 合同审查页面特定样式 */
+        .contracts-container {
+            padding: 20px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+        }
+
+        .upload-section {
+            background-color: white;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+
+        .upload-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .upload-description {
+            color: #777;
+            margin-bottom: 20px;
+        }
+
+        .upload-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .upload-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .contract-templates {
+            margin-top: 30px;
+        }
+
+        .templates-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .templates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .template-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .template-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .template-icon {
+            font-size: 36px;
+            color: #3498db;
+            margin-bottom: 10px;
+        }
+
+        .template-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .template-description {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .recent-contracts {
+            margin-top: 30px;
+        }
+
+        .recent-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+
+        .contract-item {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .contract-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .contract-icon {
+            font-size: 24px;
+            color: #3498db;
+            margin-right: 15px;
+        }
+
+        .contract-info {
+            flex: 1;
+        }
+
+        .contract-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .contract-date {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .contract-status {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .status-completed {
+            background-color: #e8f8f5;
+            color: #27ae60;
+        }
+
+        .status-reviewing {
+            background-color: #fef9e7;
+            color: #f39c12;
+        }
+
+        .status-issues {
+            background-color: #fdedec;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>AI助手</h3>
+                <button class="close-btn" id="close-sidebar">&times;</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="menu-section">
+                    <h4 class="section-title">首页</h4>
+                    <ul class="menu-list">
+                        <li><a href="index.html">返回首页</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">对话功能</h4>
+                    <ul class="menu-list">
+                        <li><a href="dialog.html">智能对话</a></li>
+                        <li><a href="history.html">历史对话</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">专业服务</h4>
+                    <ul class="menu-list">
+                        <li><a href="cases.html">案例检索</a></li>
+                        <li><a href="contracts.html" class="active">合同审查</a></li>
+                        <li><a href="overseas.html">企业出海</a></li>
+                        <li><a href="litigation.html">诉状生成</a></li>
+                        <li><a href="youth.html">14-25岁青少年专区</a></li>
+                        <li><a href="daily-quiz.html">每日一题</a></li>
+            </ul>
+        </div>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">&#9776;</button>
+                <h2>合同审查</h2>
+            </div>
+            
+            <!-- 合同审查内容 -->
+            <div class="contracts-container">
+                <!-- 上传区域 -->
+                <div class="upload-section">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-title">上传合同文件</div>
+                    <div class="upload-description">支持PDF、Word、TXT等格式，文件大小不超过10MB</div>
+                    <button class="upload-btn" id="upload-contract-btn">选择文件上传</button>
+                </div>
+                
+                <!-- 合同模板 -->
+                <div class="contract-templates">
+                    <div class="templates-title">常用合同模板</div>
+                    <div class="templates-grid">
+                        <div class="template-item">
+                            <div class="template-icon">📝</div>
+                            <div class="template-name">劳动合同</div>
+                            <div class="template-description">标准劳动合同模板，符合最新劳动法规定</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">🏠</div>
+                            <div class="template-name">房屋租赁合同</div>
+                            <div class="template-description">住宅/商铺租赁协议，保障双方权益</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">🤝</div>
+                            <div class="template-name">购销合同</div>
+                            <div class="template-description">标准商品买卖合同，适用于各类交易</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">💼</div>
+                            <div class="template-name">服务外包合同</div>
+                            <div class="template-description">IT/咨询/设计等服务外包协议</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">🔒</div>
+                            <div class="template-name">保密协议</div>
+                            <div class="template-description">商业/技术信息保密协议(NDA)</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">📱</div>
+                            <div class="template-name">软件开发合同</div>
+                            <div class="template-description">定制软件开发及知识产权约定</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 最近审查的合同 -->
+                <div class="recent-contracts">
+                    <div class="recent-title">最近审查的合同</div>
+                    
+                    <div class="contract-item">
+                        <div class="contract-icon">📄</div>
+                        <div class="contract-info">
+                            <div class="contract-name">与某科技公司的技术服务合同.docx</div>
+                            <div class="contract-date">2023-06-10 审查</div>
+                        </div>
+                        <div class="contract-status status-completed">审查完成</div>
+                    </div>
+                    
+                    <div class="contract-item">
+                        <div class="contract-icon">📄</div>
+                        <div class="contract-info">
+                            <div class="contract-name">办公室租赁协议.pdf</div>
+                            <div class="contract-date">2023-06-05 审查</div>
+                        </div>
+                        <div class="contract-status status-issues">存在风险</div>
+                    </div>
+                    
+                    <div class="contract-item">
+                        <div class="contract-icon">📄</div>
+                        <div class="contract-info">
+                            <div class="contract-name">员工保密协议模板.docx</div>
+                            <div class="contract-date">2023-06-01 审查</div>
+                        </div>
+                        <div class="contract-status status-completed">审查完成</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // 合同审查页面特定的JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadBtn = document.getElementById('upload-contract-btn');
+            const templateItems = document.querySelectorAll('.template-item');
+            const contractItems = document.querySelectorAll('.contract-item');
+            
+            // 上传按钮点击事件
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', function() {
+                    // 模拟文件上传对话框
+                    alert('将打开文件选择对话框，上传合同文件');
+                });
+            }
+            
+            // 模板点击事件
+            templateItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const templateName = this.querySelector('.template-name').textContent;
+                    alert(`将使用${templateName}模板`);
+                });
+            });
+            
+            // 合同项点击事件
+            contractItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const contractName = this.querySelector('.contract-name').textContent;
+                    const contractStatus = this.querySelector('.contract-status').textContent;
+                    alert(`查看合同：${contractName}\n状态：${contractStatus}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

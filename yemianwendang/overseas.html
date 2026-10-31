@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业出海 - AI法律助手</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ===== 企业出海咨询助手 - 页面特定样式（商务简洁风） ===== */
+        :root {
+            --primary-color: #1a56db;
+            --primary-hover: #1446b5;
+            --primary-light: #e8eefc;
+            --border-color: #d0d5dd;
+            --text-primary: #1d2939;
+            --text-secondary: #475467;
+            --text-muted: #98a2b3;
+            --bg-section: #f9fafb;
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+        }
+
+        .overseas-container {
+            padding: 24px;
+            height: calc(100vh - 60px);
+            overflow-y: auto;
+            background: #f3f4f6;
+        }
+
+        /* 标题区 */
+        .page-header {
+            text-align: center;
+            margin-bottom: 28px;
+            padding: 28px 20px;
+            background: linear-gradient(135deg, #1a56db 0%, #3b82f6 100%);
+            border-radius: var(--radius-lg);
+            color: #fff;
+        }
+        .page-header .main-title {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+        }
+        .page-header .sub-title {
+            font-size: 14px;
+            margin: 0;
+            opacity: 0.92;
+            line-height: 1.6;
+        }
+
+        /* 通用表单区块 */
+        .form-section {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+        }
+        .form-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .form-label .required {
+            color: #dc2626;
+            margin-left: 2px;
+        }
+        .form-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+
+        /* 单选标签组 */
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tag-group .tag-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 20px;
+            background: #fff;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .tag-group .tag-item:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .tag-group .tag-item.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #fff;
+            font-weight: 500;
+        }
+        .tag-group .tag-code {
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 11px;
+            opacity: 0.65;
+            font-weight: 400;
+            letter-spacing: 0.5px;
+        }
+        .tag-group .tag-item.active .tag-code,
+        .tag-group .tag-item:hover .tag-code {
+            opacity: 0.85;
+        }
+
+        /* 其他地区输入框 */
+        .other-region-input {
+            margin-top: 12px;
+            display: none;
+        }
+        .other-region-input.show {
+            display: block;
+        }
+        .other-region-input input {
+            width: 100%;
+            padding: 10px 14px;
+            font-size: 14px;
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md);
+            outline: none;
+            box-sizing: border-box;
+        }
+        .other-region-input input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+        }
+
+        /* 复选标签组 */
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .checkbox-group .check-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            font-size: 14px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 20px;
+            background: #fff;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .checkbox-group .check-item:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .checkbox-group .check-item.active {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        /* 多行文本框 */
+        .textarea-wrapper textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 12px 14px;
+            font-size: 14px;
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md);
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            line-height: 1.6;
+            box-sizing: border-box;
+        }
+        .textarea-wrapper textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+        }
+
+        /* 按钮区 */
+        .button-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s ease;
+        }
+        .btn-primary {
+            background: var(--primary-color);
+            color: #fff;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-hover);
+        }
+        .btn-primary:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #fff;
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border-color);
+        }
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+            background: #f9fafb;
+        }
+
+        /* 结果展示区 */
+        .result-section {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+            min-height: 100px;
+        }
+        .result-empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 0;
+            font-size: 14px;
+        }
+        .result-content {
+            font-size: 15px;
+            line-height: 1.8;
+            color: var(--text-primary);
+            word-wrap: break-word;
+        }
+        .result-content h1, .result-content h2, .result-content h3 {
+            margin: 18px 0 10px 0;
+            color: var(--text-primary);
+        }
+        .result-content h1 { font-size: 20px; }
+        .result-content h2 { font-size: 18px; }
+        .result-content h3 { font-size: 16px; }
+        .result-content p { margin: 8px 0; }
+        .result-content ul, .result-content ol {
+            padding-left: 22px;
+            margin: 8px 0;
+        }
+        .result-content li { margin: 4px 0; }
+        .result-content strong {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .result-content code {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .result-content pre {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 14px;
+            border-radius: var(--radius-md);
+            overflow-x: auto;
+            font-size: 13px;
+        }
+        .result-content blockquote {
+            border-left: 4px solid var(--primary-color);
+            padding: 8px 14px;
+            margin: 10px 0;
+            background: var(--primary-light);
+            color: var(--text-secondary);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+
+        .loading-indicator {
+            text-align: center;
+            color: var(--primary-color);
+            padding: 16px 0;
+            font-size: 14px;
+        }
+
+        .restart-btn-wrap {
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+        .restart-btn-wrap.show {
+            display: block;
+        }
+        .restart-btn {
+            padding: 10px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            background: #fff;
+            color: var(--primary-color);
+            border: 1.5px solid var(--primary-color);
+            transition: all 0.15s ease;
+        }
+        .restart-btn:hover {
+            background: var(--primary-light);
+        }
+
+        /* 响应式：移动端自适应换行 */
+        @media (max-width: 600px) {
+            .overseas-container { padding: 14px; }
+            .page-header { padding: 20px 16px; }
+            .page-header .main-title { font-size: 20px; }
+            .page-header .sub-title { font-size: 13px; }
+            .form-section { padding: 16px; }
+            .button-bar { flex-direction: column; }
+            .tag-group .tag-item,
+            .checkbox-group .check-item {
+                padding: 7px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+                <div class="sidebar" id="sidebar">
+                    <div class="sidebar-header">
+                        <h3>AI助手</h3>
+                        <button class="close-btn" id="close-sidebar">&times;</button>
+                    </div>
+                    <div class="sidebar-content">
+                        <div class="menu-section">
+                            <h4 class="section-title">首页</h4>
+                            <ul class="menu-list">
+                                <li><a href="index.html">返回首页</a></li>
+                            </ul>
+                        </div>
+                        <div class="menu-section">
+                            <h4 class="section-title">对话功能</h4>
+                            <ul class="menu-list">
+                                <li><a href="dialog.html">智能对话</a></li>
+                                <li><a href="history.html">历史对话</a></li>
+                            </ul>
+                        </div>
+                        <div class="menu-section">
+                            <h4 class="section-title">专业服务</h4>
+                            <ul class="menu-list">
+                                <li><a href="cases.html">案例检索</a></li>
+                                <li><a href="contracts.html">合同审查</a></li>
+                                <li><a href="overseas.html" class="active">企业出海</a></li>
+                                <li><a href="litigation.html">诉状生成</a></li>
+                                <li><a href="youth.html">14-25岁青少年专区</a></li>
+                                <li><a href="daily-quiz.html">每日一题</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">&#9776;</button>
+                <h2>企业出海</h2>
+            </div>
+            
+            <!-- 企业出海咨询助手内容 -->
+            <div class="overseas-container">
+
+                <!-- 1. 标题区 -->
+                <div class="page-header">
+                    <h1 class="main-title">企业出海咨询助手</h1>
+                    <p class="sub-title">选择目标国家/地区 + 填写你的出海需求，获取合规、注册、财税、渠道方案</p>
+                </div>
+
+                <!-- 表单区 -->
+
+                <!-- 2. 热门国家/地区（必选） -->
+                <div class="form-section">
+                    <div class="form-label">热门国家/地区<span class="required">*</span></div>
+                    <div class="form-hint">请选择目标地区，不选则无法提交</div>
+                    <div class="tag-group" id="regionGroup">
+                        <span class="tag-item" data-value="新加坡">新加坡<span class="tag-code">SG</span></span>
+                        <span class="tag-item" data-value="马来西亚">马来西亚<span class="tag-code">MY</span></span>
+                        <span class="tag-item" data-value="泰国">泰国<span class="tag-code">TH</span></span>
+                        <span class="tag-item" data-value="越南">越南<span class="tag-code">VN</span></span>
+                        <span class="tag-item" data-value="阿联酋">阿联酋<span class="tag-code">AE</span></span>
+                        <span class="tag-item" data-value="美国">美国<span class="tag-code">US</span></span>
+                        <span class="tag-item" data-value="英国">英国<span class="tag-code">UK</span></span>
+                        <span class="tag-item" data-value="德国">德国<span class="tag-code">DE</span></span>
+                        <span class="tag-item" data-value="澳大利亚">澳大利亚<span class="tag-code">AU</span></span>
+                        <span class="tag-item" data-value="其他地区">其他地区</span>
+                    </div>
+                    <!-- 选中"其他地区"时弹出的输入框 -->
+                    <div class="other-region-input" id="otherRegionInput">
+                        <input type="text" id="otherRegionText" placeholder="请输入具体的目标国家/地区">
+                    </div>
+                </div>
+
+                <!-- 3. 业务类型（必选） -->
+                <div class="form-section">
+                    <div class="form-label">业务类型<span class="required">*</span></div>
+                    <div class="form-hint">请选择您需要咨询的业务方向</div>
+                    <div class="tag-group" id="businessGroup">
+                        <span class="tag-item" data-value="公司注册">公司注册</span>
+                        <span class="tag-item" data-value="财税合规">财税合规</span>
+                        <span class="tag-item" data-value="商标专利">商标专利</span>
+                        <span class="tag-item" data-value="海外建站&投放">海外建站&投放</span>
+                        <span class="tag-item" data-value="劳务签证">劳务签证</span>
+                        <span class="tag-item" data-value="全案咨询">全案咨询</span>
+                    </div>
+                </div>
+
+                <!-- 4. 需求输入框（非必填） -->
+                <div class="form-section">
+                    <div class="form-label">详细需求（选填）</div>
+                    <div class="textarea-wrapper">
+                        <textarea id="userQuery" placeholder="例：我是国内电商，想在当地开公司，预算大概多少、周期多久；或者想了解当地收款、税务风险"></textarea>
+                    </div>
+                </div>
+
+                <!-- 5. 按钮区 -->
+                <div class="button-bar">
+                    <button class="btn btn-primary" id="submitBtn" disabled>提交咨询</button>
+                    <button class="btn btn-secondary" id="resetBtn">重置全部</button>
+                </div>
+
+                <!-- 7. 结果展示区 -->
+                <div class="result-section" id="resultSection">
+                    <div class="result-empty" id="resultEmpty">请先选择目标地区并提交咨询，我们将为您生成出海方案</div>
+                    <div class="loading-indicator" id="loadingIndicator" style="display:none;">正在生成出海方案，请稍候...</div>
+                    <div class="result-content" id="resultContent" style="display:none;"></div>
+                    <div class="restart-btn-wrap" id="restartBtnWrap">
+                        <button class="restart-btn" id="restartBtn">重新发起咨询</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+    // ===== 企业出海咨询助手 - 交互脚本 =====
+    document.addEventListener('DOMContentLoaded', function () {
+
+        // ---------- 全局表单状态 ----------
+        const formState = {
+            target_region: '',       // 目标国家/地区
+            business_type: '',       // 业务类型
+            user_query: ''           // 用户详细需求
+        };
+
+        // 是否选中了"其他地区"
+        let isOtherRegion = false;
+
+        // 待替换的 Coze webhook 地址（后续替换）
+        const COZE_WEBHOOK_URL = 'https://api.coze.cn/v1/workflow/stream_run?your_webhook_token_here';
+
+        // ---------- DOM 引用 ----------
+        const regionGroup    = document.getElementById('regionGroup');
+        const otherRegionInput = document.getElementById('otherRegionInput');
+        const otherRegionText  = document.getElementById('otherRegionText');
+        const businessGroup  = document.getElementById('businessGroup');
+        const userQueryEl    = document.getElementById('userQuery');
+        const submitBtn      = document.getElementById('submitBtn');
+        const resetBtn       = document.getElementById('resetBtn');
+        const restartBtn     = document.getElementById('restartBtn');
+        const resultEmpty    = document.getElementById('resultEmpty');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultContent  = document.getElementById('resultContent');
+        const restartBtnWrap = document.getElementById('restartBtnWrap');
+
+        // ---------- 单选标签组绑定 ----------
+        function bindSingleTagGroup(groupEl, stateKey, onChange) {
+            const items = groupEl.querySelectorAll('.tag-item');
+            items.forEach(item => {
+                item.addEventListener('click', function () {
+                    // 清除所有 active
+                    items.forEach(i => i.classList.remove('active'));
+                    // 选中当前
+                    this.classList.add('active');
+                    formState[stateKey] = this.dataset.value;
+                    if (typeof onChange === 'function') onChange(this.dataset.value);
+                    updateSubmitButton();
+                });
+            });
+        }
+
+        // 绑定地区单选
+        bindSingleTagGroup(regionGroup, 'target_region', function (val) {
+            if (val === '其他地区') {
+                isOtherRegion = true;
+                otherRegionInput.classList.add('show');
+                formState.target_region = otherRegionText.value.trim();
+                otherRegionText.focus();
+            } else {
+                isOtherRegion = false;
+                otherRegionInput.classList.remove('show');
+                otherRegionText.value = '';
+            }
+        });
+
+        // "其他地区"输入框 → 覆盖 target_region
+        otherRegionText.addEventListener('input', function () {
+            if (isOtherRegion) {
+                formState.target_region = this.value.trim();
+                updateSubmitButton();
+            }
+        });
+
+        // 绑定业务类型单选
+        bindSingleTagGroup(businessGroup, 'business_type');
+
+        // ---------- 需求输入框（切换标签不清空） ----------
+        userQueryEl.addEventListener('input', function () {
+            formState.user_query = this.value;
+        });
+
+        // ---------- 提交按钮启用/禁用 ----------
+        function updateSubmitButton() {
+            const regionValid = formState.target_region && formState.target_region.trim() !== '';
+            const businessValid = formState.business_type && formState.business_type.trim() !== '';
+            submitBtn.disabled = !(regionValid && businessValid);
+        }
+
+        // ---------- 重置全部 ----------
+        resetBtn.addEventListener('click', function () {
+            formState.target_region = '';
+            formState.business_type = '';
+            formState.user_query = '';
+
+            isOtherRegion = false;
+
+            // 清单选高亮
+            regionGroup.querySelectorAll('.tag-item').forEach(i => i.classList.remove('active'));
+            businessGroup.querySelectorAll('.tag-item').forEach(i => i.classList.remove('active'));
+            // 清其他地区输入
+            otherRegionInput.classList.remove('show');
+            otherRegionText.value = '';
+            // 清文本框
+            userQueryEl.value = '';
+
+            // 重置结果区
+            resetResultArea();
+
+            updateSubmitButton();
+        });
+
+        // 重置结果展示区
+        function resetResultArea() {
+            resultEmpty.style.display = 'block';
+            loadingIndicator.style.display = 'none';
+            resultContent.style.display = 'none';
+            resultContent.innerHTML = '';
+            restartBtnWrap.classList.remove('show');
+        }
+
+        // ---------- 提交咨询 ----------
+        submitBtn.addEventListener('click', function () {
+            if (submitBtn.disabled) return;
+
+            // 构造请求 payload
+            const payload = {
+                target_region: formState.target_region.trim(),
+                business_type: formState.business_type.trim(),
+                user_query: formState.user_query.trim()
+            };
+
+            showLoading();
+
+            // mock 请求（流式输出模拟），后续替换为真实 Coze webhook
+            mockStreamRequest(payload);
+        });
+
+        function showLoading() {
+            resultEmpty.style.display = 'none';
+            resultContent.style.display = 'none';
+            restartBtnWrap.classList.remove('show');
+            loadingIndicator.style.display = 'block';
+        }
+
+        function showResult() {
+            loadingIndicator.style.display = 'none';
+            resultEmpty.style.display = 'none';
+            resultContent.style.display = 'block';
+            restartBtnWrap.classList.add('show');
+        }
+
+        // ---------- Mock 流式请求（模拟 Coze 工作流返回） ----------
+        function mockStreamRequest(payload) {
+            // 模拟生成的 markdown 内容（根据表单参数简单定制）
+            const region = payload.target_region;
+            const business = payload.business_type;
+
+            const fullMarkdown = `## 🎯 ${region} - ${business}方案
+
+**咨询需求**: ${payload.user_query || '未填写详细需求，以下为通用方案'}
+
+### 📋 一、合规要点
+1. **公司类型选择**：建议采用有限责任公司形式，股东责任以出资额为限
+2. **注册资本**：${region}对最低注册资本要求较为宽松，一般 **1 万美元** 即可起步
+3. **经营范围**：需在政府核准的经营范围内开展业务，部分特殊行业需前置审批
+
+### 💰 二、注册流程与周期
+| 步骤 | 事项 | 预计耗时 |
+|------|------|----------|
+| 1 | 公司核名 | 1-2 工作日 |
+| 2 | 准备注册文件 | 2-3 工作日 |
+| 3 | 提交注册申请 | 5-10 工作日 |
+| 4 | 开立银行账户 | 10-15 工作日 |
+
+**总周期约 20-30 个工作日**
+
+### 💡 三、财税与运营建议
+- **税务居民身份**：合理规划董事居住地，降低成为 ${region} 税务居民的风险
+- **首次报税**：注册后 **3 个月内** 需完成首次年度申报
+- **本地合作伙伴**：建议聘请本地会计师事务所处理日常记账报税
+
+### 📊 四、预算参考
+| 项目 | 费用范围 |
+|------|----------|
+| 注册服务费 | ¥5,000 - ¥15,000 |
+| 首年维护费 | ¥3,000 - ¥8,000 |
+| 银行开户费 | ¥2,000 - ¥5,000 |
+
+> 📌 以上为参考区间，实际费用根据 ${region} 当地政策和所选服务机构有所浮动。
+
+---
+*本方案由 AI 辅助生成，具体落地建议结合 ${region} 最新法规进一步确认。*`;
+
+            // 模拟流式输出：逐字追加
+            runStream(fullMarkdown);
+        }
+
+        // ---------- 真实 Coze webhook 请求（注释保留，后续开启） ----------
+        // function realCozeRequest(payload) {
+        //     fetch(COZE_WEBHOOK_URL, {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify(payload)
+        //     }).then(res => {
+        //         // 处理 SSE 流：res.body.getReader()
+        //         // 解析每一段 chunk，逐段追加到 resultContent
+        //     });
+        // }
+
+        // ---------- 流式渲染核心 ----------
+        function runStream(markdownText) {
+            showResult();
+            resultContent.innerHTML = '';
+
+            let idx = 0;
+            const total = markdownText.length;
+
+            function step() {
+                if (idx >= total) return;
+
+                // 每次追加 1~3 个字符，模拟真实 token 输出速度
+                const chunkSize = Math.min(3, total - idx);
+                idx += chunkSize;
+
+                const partial = markdownText.substring(0, idx);
+                resultContent.innerHTML = renderMarkdown(partial);
+
+                // 自动滚动到底部
+                const container = resultContent.parentElement;
+                container.scrollTop = container.scrollHeight;
+
+                setTimeout(step, 18);
+            }
+            step();
+        }
+
+        // ---------- 轻量 Markdown 渲染（支持：标题、列表、粗体、表格、引用、行内代码、换行） ----------
+        function renderMarkdown(src) {
+            let text = escapeHtml(src);
+
+            // 代码块 ``` ... ```
+            text = text.replace(/```([\s\S]*?)```/g, function (_, code) {
+                return '<pre><code>' + escapeHtml(code.trim()) + '</code></pre>';
+            });
+
+            // 分隔线 ---
+            text = text.replace(/^---+$/gm, '<hr>');
+
+            // 表格（简单处理）
+            text = renderTables(text);
+
+            // 标题 # ## ###
+            text = text.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+            text = text.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
+            text = text.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
+
+            // 引用 >
+            text = text.replace(/^>\s*(.+)$/gm, '<blockquote>$1</blockquote>');
+
+            // 无序列表 -
+            text = text.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
+            text = wrapListItems(text);
+
+            // 有序列表 1. 2.
+            text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+            text = wrapListItems(text);
+
+            // 粗体 **text** 或 __text__
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+            // 行内代码 `code`
+            text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 换行 → <br>（保留空行分段）
+            text = text.replace(/\n\n+/g, '</p><p>');
+            text = text.replace(/\n/g, '<br>');
+
+            // 包裹在 p 标签中
+            if (!/^<(h[1-6]|ul|ol|blockquote|pre|table|hr)/.test(text.trim())) {
+                text = '<p>' + text + '</p>';
+            }
+
+            return text;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // 包裹相邻的 <li> 为 <ul>
+        function wrapListItems(text) {
+            const lines = text.split(/\n/);
+            let result = [];
+            let inList = false;
+            for (let line of lines) {
+                if (line.startsWith('<li>')) {
+                    if (!inList) {
+                        result.push('<ul>');
+                        inList = true;
+                    }
+                    result.push(line);
+                } else {
+                    if (inList) {
+                        result.push('</ul>');
+                        inList = false;
+                    }
+                    result.push(line);
+                }
+            }
+            if (inList) result.push('</ul>');
+            return result.join('\n');
+        }
+
+        // 渲染简单 markdown 表格
+        function renderTables(text) {
+            const lines = text.split(/\n/);
+            let result = [];
+            let tableLines = [];
+            let inTable = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (/^\|.*\|$/.test(line)) {
+                    // 分隔行 |---|---| 跳过
+                    if (!/^\|[\s:\-|]+\|$/.test(line)) {
+                        tableLines.push(line);
+                    }
+                    inTable = true;
+                } else {
+                    if (inTable) {
+                        result.push(buildTable(tableLines));
+                        tableLines = [];
+                        inTable = false;
+                    }
+                    result.push(line);
+                }
+            }
+            if (inTable && tableLines.length) result.push(buildTable(tableLines));
+            return result.join('\n');
+        }
+
+        function buildTable(lines) {
+            let html = '<table style="border-collapse:collapse;width:100%;margin:10px 0;font-size:14px;">';
+            lines.forEach((line, idx) => {
+                const cells = line.split('|').slice(1, -1).map(c => c.trim());
+                const tag = idx === 0 ? 'th' : 'td';
+                const bg = idx === 0 ? 'background:#f3f4f6;font-weight:600;' : '';
+                html += '<tr>';
+                cells.forEach(c => {
+                    html += `<${tag} style="border:1px solid #d0d5dd;padding:8px 12px;${bg}">${c}</${tag}>`;
+                });
+                html += '</tr>';
+            });
+            html += '</table>';
+            return html;
+        }
+
+        // ---------- 重新发起咨询 ----------
+        restartBtn.addEventListener('click', function () {
+            resetResultArea();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+    });
+    </script>
+</body>
+</html>
