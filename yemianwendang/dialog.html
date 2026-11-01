@@ -151,151 +151,169 @@
         </div>
     </div>
     <script src="script.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const baseUrl = "https://caibaowenfa.onrender.com";
-            let evtSource = null;
-            let selectedAttachmentFile = null;
-            const messageInput = document.getElementById('message-input');
-            const sendButton = document.getElementById('send-button');
-            const chatMessages = document.getElementById('chat-messages');
-            const attachmentBtn = document.getElementById('attachment-btn');
 
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-            attachmentBtn.addEventListener('click', function () {
-                fileInput.click();
-            });
-            fileInput.onchange = function (e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                selectedAttachmentFile = file;
-                alert(`已选择附件：${file.name}，发送消息时将一并上传`);
-            };
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const baseUrl = "https://caibaowenfa.onrender.com";
+    let evtSource = null;
+    let selectedAttachmentFile = null;
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const chatMessages = document.getElementById('chat-messages');
+    const attachmentBtn = document.getElementById('attachment-btn');
 
-            async function uploadFile(fileObj) {
-                const formData = new FormData();
-                formData.append("file", fileObj);
-                const resp = await fetch(`${baseUrl}/api/upload-coze-file`, {
-                    method: "POST",
-                    body: formData
-                });
-                return await resp.json();
-            }
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    attachmentBtn.addEventListener('click', function () {
+        fileInput.click();
+    });
+    fileInput.onchange = function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        selectedAttachmentFile = file;
+        alert(`已选择附件：${file.name}，发送消息时将一并上传`);
+    };
 
-            async function sendMessage() {
-                if (evtSource) evtSource.close();
-                const messageText = messageInput.value.trim();
-                let sendText = messageText;
-                if (!sendText && selectedAttachmentFile) {
-                    sendText = "请分析这份上传的文件";
-                }
-                if (!sendText && !selectedAttachmentFile) {
-                    return;
-                }
-                const now = new Date();
-                const hours = now.getHours().toString().padStart(2, '0');
-                const minutes = now.getMinutes().toString().padStart(2, '0');
-                const timeString = `${hours}:${minutes}`;
+    async function uploadFile(fileObj) {
+        const formData = new FormData();
+        formData.append("file", fileObj);
+        const resp = await fetch(`${baseUrl}/api/upload-coze-file`, {
+            method: "POST",
+            body: formData
+        });
+        return await resp.json();
+    }
 
-                const userEl = document.createElement('div');
-                userEl.className = "message sent";
-                let htmlContent = `<div class="message-content">${messageText || "(上传文件)"}`;
-                if (selectedAttachmentFile) {
-                    htmlContent += `<br><span style="color:#cce">📎 ${selectedAttachmentFile.name}</span>`;
-                }
-                htmlContent += `</div><div class="message-time">${timeString}</div>`;
-                userEl.innerHTML = htmlContent;
-                chatMessages.appendChild(userEl);
-                messageInput.value = '';
+    async function sendMessage() {
+        if (evtSource) evtSource.close();
+        const messageText = messageInput.value.trim();
+        let sendText = messageText;
+        if (!sendText && selectedAttachmentFile) {
+            sendText = "请分析这份上传的文件";
+        }
+        if (!sendText && !selectedAttachmentFile) {
+            return;
+        }
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const timeString = `${hours}:${minutes}`;
 
-                const aiEl = document.createElement('div');
-                aiEl.className = "message received";
-                aiEl.innerHTML = `
-                <div class="message-content">
-                    <div class="loading-tip">智能体正在思考中...</div>
-                </div>
-                <div class="message-time">${timeString}</div>
-                `;
-                chatMessages.appendChild(aiEl);
-                const aiContentDom = aiEl.querySelector('.message-content');
-                const loadingTipDom = aiEl.querySelector('.loading-tip');
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+        const userEl = document.createElement('div');
+        userEl.className = "message sent";
+        let htmlContent = `<div class="message-content">${messageText || "(上传文件)"}`;
+        if (selectedAttachmentFile) {
+            htmlContent += `<br><span style="color:#cce">📎 ${selectedAttachmentFile.name}</span>`;
+        }
+        htmlContent += `</div><div class="message-time">${timeString}</div>`;
+        userEl.innerHTML = htmlContent;
+        chatMessages.appendChild(userEl);
+        messageInput.value = '';
 
-                let fileId = "";
-                if (selectedAttachmentFile) {
-                    try {
-                        const uploadRes = await uploadFile(selectedAttachmentFile);
-                        if (!uploadRes.ok) {
-                            aiContentDom.innerText = `附件上传失败：${uploadRes.msg}`;
-                            selectedAttachmentFile = null;
-                            fileInput.value = '';
-                            return;
-                        }
-                        fileId = uploadRes.file_id;
-                    } catch (err) {
-                        aiContentDom.innerText = "附件上传网络异常";
-                        selectedAttachmentFile = null;
-                        fileInput.value = '';
-                        return;
-                    }
-                }
+        const aiEl = document.createElement('div');
+        aiEl.className = "message received";
+        aiEl.innerHTML = `
+        <div class="message-content">
+            <div class="loading-tip">智能体正在思考中...</div>
+        </div>
+        <div class="message-time">${timeString}</div>
+        `;
+        chatMessages.appendChild(aiEl);
+        const aiContentDom = aiEl.querySelector('.message-content');
+        const loadingTipDom = aiEl.querySelector('.loading-tip');
+        chatMessages.scrollTop = chatMessages.scrollHeight;
 
-                const params = new URLSearchParams();
-                params.append("mode", "bot");
-                params.append("user_id", "123456");
-                params.append("msg", sendText);
-                if (fileId) {
-                    params.append("file_id", fileId);
-                }
-                const url = `${baseUrl}/api/stream?${params.toString()}`;
-                evtSource = new EventSource(url);
-
-                evtSource.onmessage = (e) => {
-                    if (e.data === "PING") return;
-                    if (e.data === "[DONE]") {
-                        evtSource.close();
-                        selectedAttachmentFile = null;
-                        fileInput.value = '';
-                        return;
-                    }
-                    try {
-                        const obj = JSON.parse(e.data);
-                        if (obj.content) {
-                            loadingTipDom.remove();
-                            aiContentDom.innerText += obj.content;
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                        }
-                        if (obj.type === "answer") {
-                            loadingTipDom.remove();
-                            aiContentDom.innerText += obj.delta;
-                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                        }
-                    } catch (err) {
-                        console.log('解析失败', e.data);
-                    }
-                };
-                evtSource.onerror = () => {
-                    evtSource.close();
+        let fileId = "";
+        if (selectedAttachmentFile) {
+            try {
+                const uploadRes = await uploadFile(selectedAttachmentFile);
+                if (!uploadRes.ok) {
+                    aiContentDom.innerText = `附件上传失败：${uploadRes.msg}`;
                     selectedAttachmentFile = null;
                     fileInput.value = '';
-                    if (loadingTipDom) loadingTipDom.remove();
-                    aiContentDom.innerText += "请求出错";
-                };
+                    return;
+                }
+                fileId = uploadRes.file_id;
+            } catch (err) {
+                aiContentDom.innerText = "附件上传网络异常";
+                selectedAttachmentFile = null;
+                fileInput.value = '';
+                return;
             }
-            if (sendButton) sendButton.addEventListener('click', sendMessage);
-            if (messageInput) {
-                messageInput.addEventListener('keypress', function (event) {
-                    if (event.key === 'Enter') {
-                        sendMessage();
-                    }
-                });
+        }
+
+        const params = new URLSearchParams();
+        params.append("mode", "bot");
+        params.append("user_id", "123456");
+        params.append("msg", sendText);
+        if (fileId) {
+            params.append("file_id", fileId);
+        }
+        const url = `${baseUrl}/api/stream?${params.toString()}`;
+        evtSource = new EventSource(url);
+
+
+        // ✅ 逐片增量事件（打字机核心）
+        evtSource.addEventListener("conversation.message.delta", function (e) {
+            try {
+                const data = JSON.parse(e.data);
+                loadingTipDom.remove();
+                // delta 是新增片段
+                aiContentDom.innerText += data.delta;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (err) {
+                console.log("delta解析失败", err, e.data);
             }
-            if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
         });
-    </script>
+
+        // ✅ 消息完整结束兜底（如果没有delta分片，一次性渲染全文）
+        evtSource.addEventListener("conversation.message.completed", function (e) {
+            try {
+                const data = JSON.parse(e.data);
+                loadingTipDom.remove();
+                // 如果已经有内容了就不再追加，避免重复
+                if (!aiContentDom.innerText.trim()) {
+                    aiContentDom.innerText += data.content;
+                }
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch (err) {
+                console.log("completed解析失败", err, e.data);
+            }
+        });
+
+        evtSource.addEventListener("conversation.chat.completed", function () {
+            console.log("本轮对话全部结束");
+        });
+
+        evtSource.addEventListener("done", function () {
+            evtSource.close();
+            selectedAttachmentFile = null;
+            fileInput.value = '';
+        });
+
+        evtSource.onerror = () => {
+            evtSource.close();
+            selectedAttachmentFile = null;
+            fileInput.value = '';
+            if (loadingTipDom) loadingTipDom.remove();
+            aiContentDom.innerText += "请求出错";
+        };
+    }
+    if (sendButton) sendButton.addEventListener('click', sendMessage);
+    if (messageInput) {
+        messageInput.addEventListener('keypress', function (event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    }
+    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+</script>
+
+
 </body>
 </html>
 
