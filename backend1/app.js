@@ -90,31 +90,7 @@ app.get('/api/stream', async (req, res) => {
     if (mode === 'bot') {
         const { user_id, msg } = params;
         try {
-            let realText = msg || "";
-            if(file_id && file_id.trim() !== '' && (!realText || realText.trim() === '')){
-                realText = "请分析这份上传的文件";
-            }
-
-            let messagesPayload;
-            if (file_id && file_id.trim() !== '') {
-                messagesPayload = {
-                    content: JSON.stringify([
-                        { type: "text", text: realText },
-                        { type: "file", file_id: file_id }
-                    ]),
-                    content_type: "object_string",
-                    role: "user",
-                    type: "question"
-                };
-            } else {
-                messagesPayload = {
-                    content: realText,
-                    content_type: "text",
-                    role: "user",
-                    type: "question"
-                };
-            }
-
+            // 恢复你原来能用的消息结构！！
             const cozeResp = await axios({
                 method: "POST",
                 url: `${COZE_BASE}/v3/chat`,
@@ -126,8 +102,13 @@ app.get('/api/stream', async (req, res) => {
                     bot_id: BOT_CHAT_ID,
                     user_id,
                     stream: true,
-                    additional_messages: [messagesPayload],
-                    parameters: {}
+                    messages: [
+                        {
+                            role: "user",
+                            content: msg,
+                            content_type: "text"
+                        }
+                    ]
                 },
                 responseType: "stream"
             });
@@ -145,10 +126,11 @@ app.get('/api/stream', async (req, res) => {
                     try {
                         const obj = JSON.parse(raw);
                         if(obj.type === "answer" && obj.delta){
-                            // 转成前端识别的 {content:xxx}
                             res.write(`data: ${JSON.stringify({content: obj.delta})}\n\n`);
                         }
-                    } catch(e) {}
+                    } catch(e) {
+                        console.log("parse error", e);
+                    }
                 }
             });
             cozeResp.data.on('end', () => {
