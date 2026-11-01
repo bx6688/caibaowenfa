@@ -152,14 +152,53 @@ app.get('/api/stream', async (req, res) => {
         responseType: "stream"
       });
 
-      cozeResp.data.on('data', (chunk) => {
-        const str = chunk.toString();
-        const lines = str.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          res.write(`${line}\n\n`);
+cozeResp.data.on('data', chunk => {
+  buffer += chunk.toString();
+  const lines = buffer.split('\n');
+  buffer = lines.pop();
+
+  let currentEvent = "";
+
+  for (const line of lines) {
+    if (!line.trim()) continue;
+
+    // 记录当前事件名
+    if (line.startsWith('event:')) {
+      currentEvent = line.replace(/^event:\s*/, '').trim();
+      continue;
+    }
+
+    // 只处理 data 行
+    if (line.startsWith('data:')) {
+      const dataStr = line.replace(/^data:\s*/, '');
+
+      // 结束标记直接透传
+      if (dataStr === '[DONE]') {
+        res.write(`data: [DONE]\n\n`);
+        continue;
+      }
+
+      try {
+        const obj = JSON.parse(dataStr);
+
+        // 只提取真正的文本增量
+        if (
+          currentEvent === 'conversation.message.delta' &&
+          obj &&
+          typeof obj.content === 'string' &&
+          obj.content
+        ) {
+          res.write(`data: ${obj.content}\n\n`);
         }
-      });
+
+        // 调试用，不影响正文
+        console.log('[bot event]', currentEvent, dataStr);
+      } catch (err) {
+        // 非 JSON 数据直接忽略
+      }
+    }
+  }
+});
 
       cozeResp.data.on('end', () => {
         res.write(`data: [DONE]\n\n`);
