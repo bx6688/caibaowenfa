@@ -300,14 +300,17 @@ evtSource.onmessage = (e) => {
   }
   try {
     const obj = JSON.parse(e.data);
-    if (obj.content) {
+    // 核心：只拿content字段追加
+    if(obj.content){
       aiContentDom.innerText += obj.content;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   } catch (err) {
-    aiContentDom.innerText += e.data;
+    // 解析失败直接跳过，不渲染垃圾文本
+    console.log('解析失败', e.data);
   }
-  chatMessages.scrollTop = chatMessages.scrollHeight;
 };
+
         evtSource.onerror = ()=>{
             evtSource.close();
             selectedAttachmentFile = null;
