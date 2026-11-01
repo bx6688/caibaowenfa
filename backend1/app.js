@@ -181,7 +181,7 @@ app.get('/api/stream', async (req, res) => {
       if (workflow_id === WF_CONTRACT) {
         // 合同审查专属：开始节点变量input是File类型
         sendParams.input = {
-          file_id: params.file_id
+          input: params.file_id
         };
       } else {
         // 其他工作流保持原样
