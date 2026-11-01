@@ -176,6 +176,31 @@ app.get('/api/stream', async (req, res) => {
     }
   } else if (mode === 'workflow') {
     try {
+            // ========== 插在这里开始 ==========
+      let sendParams = {};
+      if (workflow_id === WF_CONTRACT) {
+        // 合同审查专属：开始节点变量input是File类型
+        sendParams.input = {
+          file_id: params.file_id
+        };
+      } else {
+        // 其他工作流保持原样
+        sendParams = params;
+      }
+      // ========== 插在这里结束 ==========
+      const cozeResp = await axios({
+        method: "POST",
+        url: `${COZE_BASE}/v1/workflow/stream_run`,
+        headers: {
+          "Authorization": `Bearer ${COZE_PAT}`,
+          "Content-Type": "application/json"
+        },
+        data: {
+          workflow_id,
+          parameters: sendParams  // 这里把 params 改成 sendParams
+        },
+        responseType: "stream"
+      });
       const cozeResp = await axios({
         method: "POST",
         url: `${COZE_BASE}/v1/workflow/stream_run`,
