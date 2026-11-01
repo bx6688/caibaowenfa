@@ -186,7 +186,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return await resp.json();
     }
 
-    // 打字动画
     function typeWriter(el, text, speed = 30) {
         let index = 0;
         el.innerText = "";
@@ -199,6 +198,18 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         typing();
+    }
+
+    // 统一解析函数，提取文本
+    function parseContent(data) {
+        if (!data || !data.content) return "";
+        if (Array.isArray(data.content)) {
+            const textItem = data.content.find(item => item.content_type === "text");
+            if (textItem && textItem.content && textItem.content.text) {
+                return textItem.content.text;
+            }
+        }
+        return "";
     }
 
     async function sendMessage() {
@@ -215,7 +226,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const minutes = now.getMinutes().toString().padStart(2, '0');
         const timeString = `${hours}:${minutes}`;
 
-        // 用户消息
         const userEl = document.createElement('div');
         userEl.className = "message sent";
         let htmlContent = `<div class="message-content">${messageText || "(上传文件)"}`;
@@ -227,7 +237,6 @@ document.addEventListener('DOMContentLoaded', function () {
         chatMessages.appendChild(userEl);
         messageInput.value = '';
 
-        // AI消息容器
         const aiEl = document.createElement('div');
         aiEl.className = "message received";
         aiEl.innerHTML = `
@@ -273,20 +282,28 @@ document.addEventListener('DOMContentLoaded', function () {
         let fullText = "";
         let receiveComplete = false;
 
+        // 同时监听两种事件！
+        evtSource.addEventListener("conversation.message.completed", function (e) {
+            try {
+                const data = JSON.parse(e.data);
+                const txt = parseContent(data);
+                if(txt) fullText = txt;
+                receiveComplete = true;
+                console.log("message.completed 拿到：", fullText);
+            } catch (err) {
+                console.log("message.completed 解析错误", err, e.data);
+            }
+        });
+
         evtSource.addEventListener("conversation.chat.completed", function (e) {
             try {
                 const data = JSON.parse(e.data);
-                // ✅ 适配Coze自主规划Agent的输出结构：数组，取text
-                if (Array.isArray(data.content)) {
-                    const textItem = data.content.find(item => item.content_type === "text");
-                    if (textItem && textItem.content && textItem.content.text) {
-                        fullText = textItem.content.text;
-                    }
-                }
+                const txt = parseContent(data);
+                if(txt) fullText = txt;
                 receiveComplete = true;
-                console.log("解析拿到回答：", fullText);
+                console.log("chat.completed 拿到：", fullText);
             } catch (err) {
-                console.log("解析失败", err, e.data);
+                console.log("chat.completed 解析错误", err, e.data);
             }
         });
 
@@ -307,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
             selectedAttachmentFile = null;
             fileInput.value = '';
             if (loadingTipDom) loadingTipDom.remove();
+            // 已经拿到内容就不报错
             if (receiveComplete && fullText) {
                 typeWriter(aiContentDom, fullText, 30);
             } else {
@@ -321,6 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
 </body>
 </html>
 
