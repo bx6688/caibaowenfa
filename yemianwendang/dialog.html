@@ -317,21 +317,21 @@ evtSource.onmessage = (e) => {
   }
   try {
     const obj = JSON.parse(e.data);
-    // 过滤结束包、控制包
-    if (obj.msg_type === "generate_answer_finish" || obj.msg_type === "generate_answer_complete") {
+    // 只有finish包直接跳过，其他正常走原来逻辑
+    if (obj.msg_type === "generate_answer_finish") {
       return;
     }
-    // 只拿增量文本
     if (obj.content && typeof obj.content === "string") {
       loadingTipDom.remove();
       aiContentDom.innerText += obj.content;
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   } catch (err) {
-    // 解析失败直接丢弃这条数据，不渲染
+    // 解析失败的时候，不return！保留你原来的写法，只打印，不阻断流
     console.log('解析失败', e.data);
   }
 };
+
 
 
         evtSource.onerror = () => {
