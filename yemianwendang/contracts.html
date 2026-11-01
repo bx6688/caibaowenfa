@@ -355,17 +355,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     resultBox.innerText = "审查失败："+(checkRes.error || "接口异常");
                     return;
                 }
-                const fileUrl = checkRes.data?.output?.["create_document-data"];
-                if(fileUrl){
-                    targetFileUrl = fileUrl;
-                    resultBox.innerText = "✅ 合同审查完成，文件已生成";
-                    openFileBtn.style.display = "block";
-                    openFileBtn.onclick = ()=>{
-                        window.open(targetFileUrl,"_blank");
-                    }
-                }else{
-                    resultBox.innerText = "⚠️ 审查完成，但没有读取到生成文件链接";
-                }
+// 解析外层字符串
+const dataObj = JSON.parse(checkRes.data);
+const fileUrl = dataObj.output;
+if(fileUrl){
+    targetFileUrl = fileUrl;
+    resultBox.innerText = "✅ 合同审查完成，文件已生成";
+    openFileBtn.style.display = "block";
+    openFileBtn.onclick = ()=>{
+        window.open(targetFileUrl,"_blank");
+    }
+}else{
+    resultBox.innerText = "⚠️ 审查完成，但没有读取到生成文件链接";
+}
+
             }
         });
     }
