@@ -273,7 +273,8 @@ document.addEventListener('DOMContentLoaded', function () {
         let fullText = "";
         let receiveComplete = false;
 
-        evtSource.addEventListener("conversation.message.completed", function (e) {
+        // ✅ 重点！监听 conversation.chat.completed，不是message.completed
+        evtSource.addEventListener("conversation.chat.completed", function (e) {
             try {
                 const data = JSON.parse(e.data);
                 fullText = data.content;
@@ -296,7 +297,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // 核心修复：自主规划Agent结束必然断连，只要已经拿到内容，就不报错
         evtSource.onerror = () => {
             evtSource.close();
             selectedAttachmentFile = null;
