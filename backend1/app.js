@@ -252,7 +252,7 @@ app.post('/api/workflow/contract', async (req, res) => {
   try {
     const { workflow_id, file_id } = req.body;
     console.log("收到合同审查请求，workflow_id:", workflow_id, "file_id:", file_id);
-    const pat = process.env.PAT;
+    const pat = process.env.COZE_PAT;
     if(!pat){
       console.log("错误：PAT环境变量为空！");
       return res.status(500).json({error: "服务端PAT令牌未配置"});
