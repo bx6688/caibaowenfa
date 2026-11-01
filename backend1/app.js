@@ -174,7 +174,8 @@ app.get('/api/stream', async (req, res) => {
       res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
       res.end();
     }
-  }else if (mode === 'workflow') {
+  }
+else if (mode === 'workflow') {
   try {
     let sendParams = {};
     if (workflow_id === WF_CONTRACT) {
@@ -240,7 +241,6 @@ app.get('/api/stream', async (req, res) => {
     res.end();
   }
 }
-
 } else {
   res.write(`data: 错误：mode参数非法\n\n`);
   res.end();
