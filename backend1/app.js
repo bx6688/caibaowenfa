@@ -251,23 +251,33 @@ app.listen(PORT, () => {
 app.post('/api/workflow/contract', async (req, res) => {
   try {
     const { workflow_id, file_id } = req.body;
+    console.log("收到合同审查请求，workflow_id:", workflow_id, "file_id:", file_id);
+    const pat = process.env.PAT;
+    if(!pat){
+      console.log("错误：PAT环境变量为空！");
+      return res.status(500).json({error: "服务端PAT令牌未配置"});
+    }
     const cozeRes = await axios.post('https://api.coze.cn/v1/workflow/run',
       {
         workflow_id: workflow_id,
         parameters: {
-          input: file_id
+          // File类型变量：直接传 {file_id:xxx} 对象，不要JSON.stringify
+          input: { file_id: file_id }
         }
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAT}`,
+          Authorization: `Bearer ${pat}`,
           'Content-Type': 'application/json'
         }
       }
     );
+    console.log("Coze返回成功：", cozeRes.data);
     res.json(cozeRes.data);
   } catch (err) {
-    console.log('合同审查接口报错：', err.response?.data || err.message);
+    console.log('==== Coze接口原始报错 ====');
+    console.log("err.response?.status:", err.response?.status);
+    console.log("err.response?.data:", err.response?.data);
     res.status(500).json({
       error: err.response?.data ?? err.message
     });
