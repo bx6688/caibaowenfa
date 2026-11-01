@@ -190,38 +190,36 @@ app.get('/api/stream', async (req, res) => {
         "Content-Type": "application/json"
       },
       data: {
-        workflow_id,
+        workflow_id: workflow_id,
         parameters: sendParams
       },
       responseType: "stream"
     });
     let resultData = {};
 
-    cozeResp.data.on('data', (chunk) => {
+    cozeResp.data.on('data', function(chunk) {
       const str = chunk.toString();
       const lines = str.split('\n');
-      for (const line of lines) {
-        if (!line.trim()) continue;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.trim()) {
+          continue;
+        }
         try {
           const raw = line.replace(/^data: /, '');
           const obj = JSON.parse(raw);
-          if (obj.event === "message") {
-            res.write("data: " + obj.data.content + "\n\n");
-          }
           if (obj.type === "workflow_finish") {
             resultData = obj.data.output;
           }
         } catch (e) {
+
         }
       }
     });
 
-    cozeResp.data.on('end', async () => {
+    cozeResp.data.on('end', async function() {
       if (workflow_id === WF_CASE_SEARCH) {
         res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
-        res.write("data: [DONE]\n\n");
-        res.end();
-      } else if (workflow_id === WF_OVERSEA) {
         res.write("data: [DONE]\n\n");
         res.end();
       } else {
@@ -233,7 +231,7 @@ app.get('/api/stream', async (req, res) => {
       }
     });
 
-    cozeResp.data.on('error', (e) => {
+    cozeResp.data.on('error', function(e) {
       res.write("data: 流异常：" + e.message + "\n\n");
       res.end();
     });
@@ -242,6 +240,7 @@ app.get('/api/stream', async (req, res) => {
     res.end();
   }
 }
+
 } else {
   res.write(`data: 错误：mode参数非法\n\n`);
   res.end();
