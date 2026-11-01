@@ -273,13 +273,18 @@ document.addEventListener('DOMContentLoaded', function () {
         let fullText = "";
         let receiveComplete = false;
 
-        // ✅ 重点！监听 conversation.chat.completed，不是message.completed
         evtSource.addEventListener("conversation.chat.completed", function (e) {
             try {
                 const data = JSON.parse(e.data);
-                fullText = data.content;
+                // ✅ 适配Coze自主规划Agent的输出结构：数组，取text
+                if (Array.isArray(data.content)) {
+                    const textItem = data.content.find(item => item.content_type === "text");
+                    if (textItem && textItem.content && textItem.content.text) {
+                        fullText = textItem.content.text;
+                    }
+                }
                 receiveComplete = true;
-                console.log("拿到完整回答", fullText);
+                console.log("解析拿到回答：", fullText);
             } catch (err) {
                 console.log("解析失败", err, e.data);
             }
@@ -316,9 +321,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-
-
-
 </body>
 </html>
 
