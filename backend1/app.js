@@ -177,16 +177,12 @@ app.get('/api/stream', async (req, res) => {
   } else if (mode === 'workflow') {
     try {
             // ========== 插在这里开始 ==========
-      let sendParams = {};
-      if (workflow_id === WF_CONTRACT) {
-        // 合同审查专属：开始节点变量input是File类型
-        sendParams.input = {
-          input: params.file_id
-        };
-      } else {
-        // 其他工作流保持原样
-        sendParams = params;
-      }
+     let sendParams = {};
+if (workflow_id === WF_CONTRACT) {
+  sendParams.input = params.file_id;
+} else {
+  sendParams = params;
+}
       // ========== 插在这里结束 ==========
       const cozeResp = await axios({
         method: "POST",
