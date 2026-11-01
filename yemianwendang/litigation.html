@@ -520,180 +520,135 @@
     </div>
 
     <script src="script.js"></script>
-    <script>
-        // 诉状生成页面特定的JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            // 获取步骤元素
-            const steps = document.querySelectorAll('.step');
-            const formSections = document.querySelectorAll('.form-section');
-            
-            // 获取按钮元素
-            const step1Next = document.getElementById('step1-next');
-            const step2Prev = document.getElementById('step2-prev');
-            const step2Next = document.getElementById('step2-next');
-            const step3Prev = document.getElementById('step3-prev');
-            const step3Next = document.getElementById('step3-next');
-            const step4Prev = document.getElementById('step4-prev');
-            const step4Next = document.getElementById('step4-next');
-            const step5Prev = document.getElementById('step5-prev');
-            const generateBtn = document.getElementById('generate-btn');
-            const downloadBtn = document.getElementById('download-btn');
-            
-            // 诉讼类型选择
-            const litigationTypes = document.querySelectorAll('.litigation-type');
-            
-            // 当前步骤
-            let currentStep = 1;
-            
-            // 更新步骤显示
-            function updateSteps(newStep) {
-                // 更新步骤指示器
-                steps.forEach(step => {
-                    const stepNum = parseInt(step.dataset.step);
-                    step.classList.remove('active', 'completed');
-                    
-                    if (stepNum === newStep) {
-                        step.classList.add('active');
-                    } else if (stepNum < newStep) {
-                        step.classList.add('completed');
-                    }
-                });
-                
-                // 更新表单显示
-                formSections.forEach((section, index) => {
-                    if (index + 1 === newStep) {
-                        section.style.display = 'block';
-                    } else {
-                        section.style.display = 'none';
-                    }
-                });
-                
-                // 更新当前步骤
-                currentStep = newStep;
-                
-                // 滚动到顶部
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-            
-            // 诉讼类型选择事件
-            litigationTypes.forEach(type => {
-                type.addEventListener('click', function() {
-                    // 移除所有选中状态
-                    litigationTypes.forEach(t => t.classList.remove('selected'));
-                    // 添加选中状态
-                    this.classList.add('selected');
-                });
-            });
-            
-            // 步骤1：下一步按钮
-            if (step1Next) {
-                step1Next.addEventListener('click', function() {
-                    updateSteps(2);
-                });
-            }
-            
-            // 步骤2：上一步按钮
-            if (step2Prev) {
-                step2Prev.addEventListener('click', function() {
-                    updateSteps(1);
-                });
-            }
-            
-            // 步骤2：下一步按钮
-            if (step2Next) {
-                step2Next.addEventListener('click', function() {
-                    updateSteps(3);
-                });
-            }
-            
-            // 步骤3：上一步按钮
-            if (step3Prev) {
-                step3Prev.addEventListener('click', function() {
-                    updateSteps(2);
-                });
-            }
-            
-            // 步骤3：下一步按钮
-            if (step3Next) {
-                step3Next.addEventListener('click', function() {
-                    updateSteps(4);
-                });
-            }
-            
-            // 步骤4：上一步按钮
-            if (step4Prev) {
-                step4Prev.addEventListener('click', function() {
-                    updateSteps(3);
-                });
-            }
-            
-            // 步骤4：下一步按钮
-            if (step4Next) {
-                step4Next.addEventListener('click', function() {
-                    // 生成预览内容
-                    generatePreview();
-                    updateSteps(5);
-                });
-            }
-            
-            // 步骤5：上一步按钮
-            if (step5Prev) {
-                step5Prev.addEventListener('click', function() {
-                    updateSteps(4);
-                });
-            }
-            
-            // 生成完整诉状按钮
-            if (generateBtn) {
-                generateBtn.addEventListener('click', function() {
-                    alert('正在生成完整诉状，请稍候...');
-                    // 模拟生成过程
-                    setTimeout(() => {
-                        alert('诉状生成成功！您可以查看预览或下载Word文档。');
-                    }, 1500);
-                });
-            }
-            
-            // 下载Word文档按钮
-            if (downloadBtn) {
-                downloadBtn.addEventListener('click', function() {
-                    alert('正在准备下载Word文档...');
-                });
-            }
-            
-            // 生成预览内容
-            function generatePreview() {
-                const previewContent = document.getElementById('preview-content');
-                if (!previewContent) return;
-                
-                // 获取表单数据
-                const plaintiffName = document.getElementById('plaintiff-name').value || '[原告姓名]';
-                const plaintiffAddress = document.getElementById('plaintiff-address').value || '[原告地址]';
-                const defendantName = document.getElementById('defendant-name').value || '[被告姓名]';
-                const defendantAddress = document.getElementById('defendant-address').value || '[被告地址]';
-                const caseFacts = document.getElementById('case-facts').value || '[案件事实与理由详细描述]';
-                const litigationRequests = document.getElementById('litigation-requests').value || '[诉讼请求]';
-                
-                // 格式化诉讼请求
-                let requestsHtml = '';
-                if (litigationRequests) {
-                    const requests = litigationRequests.split('\n').filter(r => r.trim() !== '');
-                    requests.forEach((request, index) => {
-                        requestsHtml += `<p>${index + 1}. ${request}</p>`;
-                    });
-                } else {
-                    requestsHtml = '<p>1. [诉讼请求1]</p><p>2. [诉讼请求2]</p>';
+  <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const baseUrl = "https://caibaowenfa.onrender.com";
+    let evtSource = null;
+
+    const steps = document.querySelectorAll('.step');
+    const formSections = document.querySelectorAll('.form-section');
+    const step1Next = document.getElementById('step1-next');
+    const step2Prev = document.getElementById('step2-prev');
+    const step2Next = document.getElementById('step2-next');
+    const step3Prev = document.getElementById('step3-prev');
+    const step3Next = document.getElementById('step3-next');
+    const step4Prev = document.getElementById('step4-prev');
+    const step4Next = document.getElementById('step4-next');
+    const step5Prev = document.getElementById('step5-prev');
+    const generateBtn = document.getElementById('generate-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const litigationTypes = document.querySelectorAll('.litigation-type');
+
+    let currentStep = 1;
+    let selectedLitigationType = "labor";
+
+    function updateSteps(newStep) {
+        steps.forEach(step => {
+            const stepNum = parseInt(step.dataset.step);
+            step.classList.remove('active', 'completed');
+            if (stepNum === newStep) step.classList.add('active');
+            else if (stepNum < newStep) step.classList.add('completed');
+        });
+        formSections.forEach((section, index) => {
+            section.style.display = (index+1 === newStep) ? 'block' : 'none';
+        });
+        currentStep = newStep;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    litigationTypes.forEach(type => {
+        type.addEventListener('click', function() {
+            litigationTypes.forEach(t => t.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedLitigationType = this.dataset.type;
+        });
+    });
+
+    if(step1Next) step1Next.addEventListener('click', ()=>updateSteps(2));
+    if(step2Prev) step2Prev.addEventListener('click', ()=>updateSteps(1));
+    if(step2Next) step2Next.addEventListener('click', ()=>updateSteps(3));
+    if(step3Prev) step3Prev.addEventListener('click', ()=>updateSteps(2));
+    if(step3Next) step3Next.addEventListener('click', ()=>updateSteps(4));
+    if(step4Prev) step4Prev.addEventListener('click', ()=>updateSteps(3));
+    if(step4Next) step4Next.addEventListener('click', ()=>{
+        generatePreview();
+        updateSteps(5);
+    });
+    if(step5Prev) step5Prev.addEventListener('click', ()=>updateSteps(4));
+
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function() {
+            if(evtSource) evtSource.close();
+            const previewContent = document.getElementById('preview-content');
+            previewContent.innerText = "AI正在生成诉状，请稍候...";
+
+            const params = new URLSearchParams();
+            params.append("mode","workflow");
+            params.append("workflow_id","7702006222829436937");
+            params.append("lawsuit_type", selectedLitigationType);
+            params.append("plaintiff_type", document.getElementById('plaintiff-type').value||"");
+            params.append("plaintiff_name", document.getElementById('plaintiff-name').value||"");
+            params.append("plaintiff_address", document.getElementById('plaintiff-address').value||"");
+            params.append("plaintiff_phone", document.getElementById('plaintiff-phone').value||"");
+            params.append("defendant_type", document.getElementById('defendant-type').value||"");
+            params.append("defendant_name", document.getElementById('defendant-name').value||"");
+            params.append("defendant_address", document.getElementById('defendant-address').value||"");
+            params.append("defendant_phone", document.getElementById('defendant-phone').value||"");
+            params.append("case_content", document.getElementById('case-facts').value||"");
+            params.append("case_evidence", document.getElementById('case-evidence').value||"");
+            params.append("case_law_basis", document.getElementById('case-legal-basis').value||"");
+            params.append("claim_main", document.getElementById('litigation-requests').value||"");
+            params.append("claim_amount", document.getElementById('compensation-amount').value||"");
+            params.append("claim_other", document.getElementById('other-requests').value||"");
+
+            const url = `${baseUrl}/api/stream?${params.toString()}`;
+            evtSource = new EventSource(url);
+
+            evtSource.onmessage = (e) => {
+                if(e.data === "PING") return;
+                if(e.data === "[DONE]"){
+                    evtSource.close();
+                    return;
                 }
-                
-                // 获取当前日期
-                const today = new Date();
-                const year = today.getFullYear();
-                const month = today.getMonth() + 1;
-                const day = today.getDate();
-                const dateStr = `${year}年${month}月${day}日`;
-                
-                // 更新预览内容
-                previewContent.innerHTML = `
+                previewContent.innerHTML += e.data;
+            };
+            evtSource.onerror = ()=>{
+                evtSource.close();
+                alert("生成失败，请重试");
+            };
+        });
+    }
+
+    if(downloadBtn){
+        downloadBtn.addEventListener('click', function(){
+            alert('下载Word文档功能待实现');
+        });
+    }
+
+    function generatePreview() {
+        const previewContent = document.getElementById('preview-content');
+        if (!previewContent) return;
+        const plaintiffName = document.getElementById('plaintiff-name').value || '[原告姓名]';
+        const plaintiffAddress = document.getElementById('plaintiff-address').value || '[原告地址]';
+        const defendantName = document.getElementById('defendant-name').value || '[被告姓名]';
+        const defendantAddress = document.getElementById('defendant-address').value || '[被告地址]';
+        const caseFacts = document.getElementById('case-facts').value || '[案件事实与理由详细描述]';
+        const litigationRequests = document.getElementById('litigation-requests').value || '[诉讼请求]';
+        let requestsHtml = '';
+        if (litigationRequests) {
+            const requests = litigationRequests.split('\n').filter(r => r.trim() !== '');
+            requests.forEach((request, index) => {
+                requestsHtml += `<p>${index + 1}. ${request}</p>`;
+            });
+        } else {
+            requestsHtml = '<p>1. [诉讼请求1]</p><p>2. [诉讼请求2]</p>';
+        }
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        const day = today.getDate();
+        const dateStr = `${year}年${month}月${day}日`;
+        previewContent.innerHTML = `
                     <p><strong>原告：</strong>${plaintiffName}，${plaintiffAddress}</p>
                     <p><strong>被告：</strong>${defendantName}，${defendantAddress}</p>
                     <p><strong>诉讼请求：</strong></p>
@@ -705,8 +660,8 @@
                     <p style="text-align: right;">具状人：${plaintiffName}</p>
                     <p style="text-align: right;">${dateStr}</p>
                 `;
-            }
-        });
-    </script>
+    }
+});
+</script>
 </body>
 </html>
