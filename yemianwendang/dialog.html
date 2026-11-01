@@ -96,10 +96,6 @@
             font-size: 18px;
             transform: rotate(45deg);
         }
-        
-        .mic-icon {
-            font-size: 18px;
-        }
 
         /* 发送按钮 */
         .send-btn {
@@ -109,6 +105,9 @@
 
         .paper-plane-icon {
             font-size: 18px;
+        }
+        .loading-tip{
+            color:#888;
         }
     </style>
 </head>
@@ -169,9 +168,6 @@
                         <i class="paperclip-icon">&#128206;</i>
                     </button>
                     <input type="text" id="message-input" placeholder="输入消息...">
-                    <button class="voice-btn" id="voice-btn" title="语音输入">
-                        <i class="mic-icon">&#127908;</i>
-                    </button>
                     <button class="send-btn" id="send-button" title="发送">
                         <i class="paper-plane-icon">&#128233;</i>
                     </button>
@@ -191,7 +187,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('send-button');
     const chatMessages = document.getElementById('chat-messages');
     const attachmentBtn = document.getElementById('attachment-btn');
-    const voiceBtn = document.getElementById('voice-btn');
 
     // 隐藏的文件input
     const fileInput = document.createElement('input');
@@ -250,12 +245,18 @@ document.addEventListener('DOMContentLoaded', function() {
         chatMessages.appendChild(userEl);
         messageInput.value = '';
 
-        // AI回复气泡
+        // AI回复气泡：增加思考提示 loading-tip
         const aiEl = document.createElement('div');
         aiEl.className = "message received";
-        aiEl.innerHTML = `<div class="message-content"></div><div class="message-time">${timeString}</div>`;
+        aiEl.innerHTML = `
+            <div class="message-content">
+                <div class="loading-tip">智能体正在思考中...</div>
+            </div>
+            <div class="message-time">${timeString}</div>
+        `;
         chatMessages.appendChild(aiEl);
         const aiContentDom = aiEl.querySelector('.message-content');
+        const loadingTipDom = aiEl.querySelector('.loading-tip');
         chatMessages.scrollTop = chatMessages.scrollHeight;
 
         let fileId = "";
@@ -300,13 +301,13 @@ evtSource.onmessage = (e) => {
   }
   try {
     const obj = JSON.parse(e.data);
-    // 核心：只拿content字段追加
     if(obj.content){
+      // 收到文字，删掉思考提示，追加回答
+      loadingTipDom.remove();
       aiContentDom.innerText += obj.content;
       chatMessages.scrollTop = chatMessages.scrollHeight;
     }
   } catch (err) {
-    // 解析失败直接跳过，不渲染垃圾文本
     console.log('解析失败', e.data);
   }
 };
@@ -315,6 +316,8 @@ evtSource.onmessage = (e) => {
             evtSource.close();
             selectedAttachmentFile = null;
             fileInput.value = '';
+            loadingTipDom.remove();
+            aiContentDom.innerText += "请求出错";
         };
     }
 
@@ -327,13 +330,9 @@ evtSource.onmessage = (e) => {
         });
     }
 
-    if (voiceBtn) {
-        voiceBtn.addEventListener('click', function() {
-            alert('语音输入待实现');
-        });
-    }
     if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 </script>
 </body>
 </html>
+
