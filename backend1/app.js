@@ -222,12 +222,15 @@ if (workflow_id === WF_CONTRACT) {
           res.end();
         } else {
           let outputText = "";
-          if (workflow_id === WF_OVERSEA) outputText = resultData.content;
-          if (workflow_id === WF_COMPLAINT) outputText = resultData.pleading_text;
-          if (workflow_id === WF_CONTRACT) outputText = resultData.output;
+          if (workflow_id === WF_OVERSEA) outputText = resultData?.content;
+          if (workflow_id === WF_COMPLAINT) outputText = resultData?.pleading_text;
+          if (workflow_id === WF_CONTRACT) outputText = resultData?.output;
+          // 关键修复：强制转字符串，空值兜底，防止for of迭代报错
+          outputText = typeof outputText === "string" ? outputText : "";
           await streamText(res, outputText);
         }
       });
+
 
       cozeResp.data.on('error', (e) => {
         res.write(`data: 流异常：${e.message}\n\n`);
