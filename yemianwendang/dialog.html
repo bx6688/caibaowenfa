@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -10,7 +9,8 @@
         .chat-container {
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 60px); /* 减去header高度 */
+            height: calc(100vh - 60px);
+            /* 减去header高度 */
             background-color: white;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
@@ -106,54 +106,53 @@
         .paper-plane-icon {
             font-size: 18px;
         }
-        .loading-tip{
-            color:#888;
+
+        .loading-tip {
+            color: #888;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- 左侧菜单栏 -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h3>AI助手</h3>
-            <button class="close-btn" id="close-sidebar">&times;</button>
-        </div>
-        <div class="sidebar-content">
-            <div class="menu-section">
-                <h4 class="section-title">首页</h4>
-                <ul class="menu-list">
-                    <li><a href="index.html">返回首页</a></li>
-                </ul>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>AI助手</h3>
+                <button class="close-btn" id="close-sidebar">&times;</button>
             </div>
-            <div class="menu-section">
-                <h4 class="section-title">对话功能</h4>
-                <ul class="menu-list">
-                    <li><a href="dialog.html" class="active">智能对话</a></li>
-                    <li><a href="history.html">历史对话</a></li>
-                </ul>
+            <div class="sidebar-content">
+                <div class="menu-section">
+                    <h4 class="section-title">首页</h4>
+                    <ul class="menu-list">
+                        <li><a href="index.html">返回首页</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">对话功能</h4>
+                    <ul class="menu-list">
+                        <li><a href="dialog.html" class="active">智能对话</a></li>
+                        <li><a href="history.html">历史对话</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">专业服务</h4>
+                    <ul class="menu-list">
+                        <li><a href="cases.html">案例检索</a></li>
+                        <li><a href="contracts.html">合同审查</a></li>
+                        <li><a href="overseas.html">企业出海</a></li>
+                        <li><a href="litigation.html">诉状生成</a></li>
+                        <li><a href="youth.html">14-25岁青少年专区</a></li>
+                        <li><a href="daily-quiz.html">每日一题</a></li>
+                    </ul>
+                </div>
             </div>
-            <div class="menu-section">
-                <h4 class="section-title">专业服务</h4>
-                <ul class="menu-list">
-                    <li><a href="cases.html">案例检索</a></li>
-                    <li><a href="contracts.html">合同审查</a></li>
-                    <li><a href="overseas.html">企业出海</a></li>
-                    <li><a href="litigation.html">诉状生成</a></li>
-                    <li><a href="youth.html">14-25岁青少年专区</a></li>
-                    <li><a href="daily-quiz.html">每日一题</a></li>
-            </ul>
         </div>
-        </div>
-    </div>
-
         <!-- 主内容区域 -->
         <div class="main-content" id="main-content">
             <div class="header">
                 <button class="menu-btn" id="open-sidebar">&#9776;</button>
                 <h2>智能对话</h2>
             </div>
-            
             <!-- 对话框区域 -->
             <div class="chat-container">
                 <div class="chat-messages" id="chat-messages">
@@ -175,164 +174,145 @@
             </div>
         </div>
     </div>
-
     <script src="script.js"></script>
-   <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const baseUrl = "https://caibaowenfa.onrender.com";
-    let evtSource = null;
-    let selectedAttachmentFile = null;
-
-    const messageInput = document.getElementById('message-input');
-    const sendButton = document.getElementById('send-button');
-    const chatMessages = document.getElementById('chat-messages');
-    const attachmentBtn = document.getElementById('attachment-btn');
-
-    // 隐藏的文件input
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.style.display = 'none';
-    document.body.appendChild(fileInput);
-
-    attachmentBtn.addEventListener('click', function () {
-        fileInput.click();
-    });
-    fileInput.onchange = function (e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        selectedAttachmentFile = file;
-        alert(`已选择附件：${file.name}，发送消息时将一并上传`);
-    };
-
-    // 上传文件到后端 /api/upload-coze-file
-    async function uploadFile(fileObj) {
-        const formData = new FormData();
-        formData.append("file", fileObj);
-        const resp = await fetch(`${baseUrl}/api/upload-coze-file`, {
-            method: "POST",
-            body: formData
-        });
-        return await resp.json();
-    }
-
-    async function sendMessage() {
-        if(evtSource) evtSource.close();
-        const messageText = messageInput.value.trim();
-
-        // 修复：只上传附件没有输入文字，自动填充占位文本
-        let sendText = messageText;
-        if(!sendText && selectedAttachmentFile){
-            sendText = "请分析这份上传的文件";
-        }
-        if(!sendText && !selectedAttachmentFile){
-            return;
-        }
-
-        const now = new Date();
-        const hours = now.getHours().toString().padStart(2, '0');
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const timeString = `${hours}:${minutes}`;
-
-        // 用户消息UI渲染
-        const userEl = document.createElement('div');
-        userEl.className = "message sent";
-        let htmlContent = `<div class="message-content">${messageText||"(上传文件)"}`;
-        if(selectedAttachmentFile){
-            htmlContent += `<br><span style="color:#cce">📎 ${selectedAttachmentFile.name}</span>`;
-        }
-        htmlContent += `</div><div class="message-time">${timeString}</div>`;
-        userEl.innerHTML = htmlContent;
-        chatMessages.appendChild(userEl);
-        messageInput.value = '';
-
-        // AI回复气泡：增加思考提示 loading-tip
-        const aiEl = document.createElement('div');
-        aiEl.className = "message received";
-        aiEl.innerHTML = `
-            <div class="message-content">
-                <div class="loading-tip">智能体正在思考中...</div>
-            </div>
-            <div class="message-time">${timeString}</div>
-        `;
-        chatMessages.appendChild(aiEl);
-        const aiContentDom = aiEl.querySelector('.message-content');
-        const loadingTipDom = aiEl.querySelector('.loading-tip');
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-
-        let fileId = "";
-        // 如果选了附件，先执行上传
-        if(selectedAttachmentFile){
-            try{
-                const uploadRes = await uploadFile(selectedAttachmentFile);
-                if(!uploadRes.ok){
-                    aiContentDom.innerText = `附件上传失败：${uploadRes.msg}`;
-                    selectedAttachmentFile = null;
-                    fileInput.value = '';
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const baseUrl = "https://caibaowenfa.onrender.com";
+            let evtSource = null;
+            let selectedAttachmentFile = null;
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            const chatMessages = document.getElementById('chat-messages');
+            const attachmentBtn = document.getElementById('attachment-btn');
+            // 隐藏的文件input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            attachmentBtn.addEventListener('click', function () {
+                fileInput.click();
+            });
+            fileInput.onchange = function (e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                selectedAttachmentFile = file;
+                alert(`已选择附件：${file.name}，发送消息时将一并上传`);
+            };
+            // 上传文件到后端 /api/upload-coze-file
+            async function uploadFile(fileObj) {
+                const formData = new FormData();
+                formData.append("file", fileObj);
+                const resp = await fetch(`${baseUrl}/api/upload-coze-file`, {
+                    method: "POST",
+                    body: formData
+                });
+                return await resp.json();
+            }
+            async function sendMessage() {
+                if (evtSource) evtSource.close();
+                const messageText = messageInput.value.trim();
+                // 修复：只上传附件没有输入文字，自动填充占位文本
+                let sendText = messageText;
+                if (!sendText && selectedAttachmentFile) {
+                    sendText = "请分析这份上传的文件";
+                }
+                if (!sendText && !selectedAttachmentFile) {
                     return;
                 }
-                fileId = uploadRes.file_id;
-            }catch(err){
-                aiContentDom.innerText = "附件上传网络异常";
-                selectedAttachmentFile = null;
-                fileInput.value = '';
-                return;
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                const timeString = `${hours}:${minutes}`;
+                // 用户消息UI渲染
+                const userEl = document.createElement('div');
+                userEl.className = "message sent";
+                let htmlContent = `<div class="message-content">${messageText || "(上传文件)"}`;
+                if (selectedAttachmentFile) {
+                    htmlContent += `<br><span style="color:#cce">📎 ${selectedAttachmentFile.name}</span>`;
+                }
+                htmlContent += `</div><div class="message-time">${timeString}</div>`;
+                userEl.innerHTML = htmlContent;
+                chatMessages.appendChild(userEl);
+                messageInput.value = '';
+                // AI回复气泡：增加思考提示 loading-tip
+                const aiEl = document.createElement('div');
+                aiEl.className = "message received";
+                aiEl.innerHTML = `
+                <div class="message-content">
+                    <div class="loading-tip">智能体正在思考中...</div>
+                </div>
+                <div class="message-time">${timeString}</div>
+                `;
+                chatMessages.appendChild(aiEl);
+                const aiContentDom = aiEl.querySelector('.message-content');
+                const loadingTipDom = aiEl.querySelector('.loading-tip');
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                let fileId = "";
+                // 如果选了附件，先执行上传
+                if (selectedAttachmentFile) {
+                    try {
+                        const uploadRes = await uploadFile(selectedAttachmentFile);
+                        if (!uploadRes.ok) {
+                            aiContentDom.innerText = `附件上传失败：${uploadRes.msg}`;
+                            selectedAttachmentFile = null;
+                            fileInput.value = '';
+                            return;
+                        }
+                        fileId = uploadRes.file_id;
+                    } catch (err) {
+                        aiContentDom.innerText = "附件上传网络异常";
+                        selectedAttachmentFile = null;
+                        fileInput.value = '';
+                        return;
+                    }
+                }
+                // 组装SSE参数，带上file_id
+                const params = new URLSearchParams();
+                params.append("mode", "bot");
+                params.append("user_id", "123456");
+                params.append("msg", sendText);
+                if (fileId) {
+                    params.append("file_id", fileId);
+                }
+                const url = `${baseUrl}/api/stream?${params.toString()}`;
+                evtSource = new EventSource(url);
+                evtSource.onmessage = (e) => {
+                    if (e.data === "PING") return;
+                    if (e.data === "[DONE]") {
+                        evtSource.close();
+                        selectedAttachmentFile = null;
+                        fileInput.value = '';
+                        return;
+                    }
+                    try {
+                        const obj = JSON.parse(e.data);
+                        if (obj.type === "answer") {
+                            loadingTipDom.remove();
+                            aiContentDom.innerText += obj.delta;
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    } catch (err) {
+                        console.log('解析失败', e.data);
+                    }
+                };
+                evtSource.onerror = () => {
+                    evtSource.close();
+                    selectedAttachmentFile = null;
+                    fileInput.value = '';
+                    loadingTipDom.remove();
+                    aiContentDom.innerText += "请求出错";
+                };
             }
-        }
-
-        // 组装SSE参数，带上file_id
-        const params = new URLSearchParams();
-        params.append("mode","bot");
-        params.append("user_id","123456");
-        params.append("msg", sendText);
-        if(fileId){
-            params.append("file_id", fileId);
-        }
-
-        const url = `${baseUrl}/api/stream?${params.toString()}`;
-        evtSource = new EventSource(url);
-
-evtSource.onmessage = (e) => {
-  if(e.data === "PING") return;
-  if(e.data === "[DONE]"){
-    evtSource.close();
-    selectedAttachmentFile = null;
-    fileInput.value = '';
-    return;
-  }
-  try {
-    const obj = JSON.parse(e.data);
-    if(obj.content){
-      // 收到文字，删掉思考提示，追加回答
-      loadingTipDom.remove();
-      aiContentDom.innerText += obj.content;
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-  } catch (err) {
-    console.log('解析失败', e.data);
-  }
-};
-
-        evtSource.onerror = ()=>{
-            evtSource.close();
-            selectedAttachmentFile = null;
-            fileInput.value = '';
-            loadingTipDom.remove();
-            aiContentDom.innerText += "请求出错";
-        };
-    }
-
-    if (sendButton) sendButton.addEventListener('click', sendMessage);
-    if (messageInput) {
-        messageInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                sendMessage();
+            if (sendButton) sendButton.addEventListener('click', sendMessage);
+            if (messageInput) {
+                messageInput.addEventListener('keypress', function (event) {
+                    if (event.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
             }
+            if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
         });
-    }
-
-    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
-});
-</script>
+    </script>
 </body>
 </html>
-
