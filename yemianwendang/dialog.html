@@ -5,16 +5,13 @@
     <title>智能对话 - AI法律助手</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* 对话页面特定样式 */
         .chat-container {
             display: flex;
             flex-direction: column;
             height: calc(100vh - 60px);
-            /* 减去header高度 */
             background-color: white;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-
         .chat-messages {
             flex: 1;
             padding: 20px;
@@ -22,7 +19,6 @@
             display: flex;
             flex-direction: column;
         }
-
         .message {
             max-width: 70%;
             margin-bottom: 15px;
@@ -30,28 +26,23 @@
             border-radius: 10px;
             position: relative;
         }
-
         .message.received {
             align-self: flex-start;
             background-color: #f1f0f0;
         }
-
         .message.sent {
             align-self: flex-end;
             background-color: #3498db;
             color: white;
         }
-
         .message-content {
             margin-bottom: 5px;
         }
-
         .message-time {
             font-size: 12px;
             opacity: 0.7;
             text-align: right;
         }
-
         .chat-input {
             display: flex;
             padding: 15px;
@@ -59,7 +50,6 @@
             border-top: 1px solid #eee;
             align-items: center;
         }
-
         .chat-input input {
             flex: 1;
             padding: 10px 15px;
@@ -68,8 +58,6 @@
             margin: 0 10px;
             font-size: 14px;
         }
-
-        /* 通用按钮样式 */
         .chat-input button {
             background: none;
             border: none;
@@ -82,31 +70,23 @@
             align-items: center;
             justify-content: center;
         }
-
         .chat-input button:hover {
             background-color: rgba(52, 152, 219, 0.1);
         }
-
-        /* 附件按钮 */
         .attachment-btn {
             color: #7f8c8d;
         }
-
         .paperclip-icon {
             font-size: 18px;
             transform: rotate(45deg);
         }
-
-        /* 发送按钮 */
         .send-btn {
             background-color: #3498db !important;
             color: white;
         }
-
         .paper-plane-icon {
             font-size: 18px;
         }
-
         .loading-tip {
             color: #888;
         }
@@ -114,7 +94,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- 左侧菜单栏 -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3>AI助手</h3>
@@ -147,16 +126,13 @@
                 </div>
             </div>
         </div>
-        <!-- 主内容区域 -->
         <div class="main-content" id="main-content">
             <div class="header">
                 <button class="menu-btn" id="open-sidebar">&#9776;</button>
                 <h2>智能对话</h2>
             </div>
-            <!-- 对话框区域 -->
             <div class="chat-container">
                 <div class="chat-messages" id="chat-messages">
-                    <!-- 消息将通过JavaScript动态添加 -->
                     <div class="message received">
                         <div class="message-content">你好！有什么法律问题可以帮助你解答吗？</div>
                         <div class="message-time">10:00</div>
@@ -184,7 +160,7 @@
             const sendButton = document.getElementById('send-button');
             const chatMessages = document.getElementById('chat-messages');
             const attachmentBtn = document.getElementById('attachment-btn');
-            // 隐藏的文件input
+
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.style.display = 'none';
@@ -198,7 +174,7 @@
                 selectedAttachmentFile = file;
                 alert(`已选择附件：${file.name}，发送消息时将一并上传`);
             };
-            // 上传文件到后端 /api/upload-coze-file
+
             async function uploadFile(fileObj) {
                 const formData = new FormData();
                 formData.append("file", fileObj);
@@ -208,10 +184,10 @@
                 });
                 return await resp.json();
             }
+
             async function sendMessage() {
                 if (evtSource) evtSource.close();
                 const messageText = messageInput.value.trim();
-                // 修复：只上传附件没有输入文字，自动填充占位文本
                 let sendText = messageText;
                 if (!sendText && selectedAttachmentFile) {
                     sendText = "请分析这份上传的文件";
@@ -223,7 +199,7 @@
                 const hours = now.getHours().toString().padStart(2, '0');
                 const minutes = now.getMinutes().toString().padStart(2, '0');
                 const timeString = `${hours}:${minutes}`;
-                // 用户消息UI渲染
+
                 const userEl = document.createElement('div');
                 userEl.className = "message sent";
                 let htmlContent = `<div class="message-content">${messageText || "(上传文件)"}`;
@@ -234,7 +210,7 @@
                 userEl.innerHTML = htmlContent;
                 chatMessages.appendChild(userEl);
                 messageInput.value = '';
-                // AI回复气泡：增加思考提示 loading-tip
+
                 const aiEl = document.createElement('div');
                 aiEl.className = "message received";
                 aiEl.innerHTML = `
@@ -247,8 +223,8 @@
                 const aiContentDom = aiEl.querySelector('.message-content');
                 const loadingTipDom = aiEl.querySelector('.loading-tip');
                 chatMessages.scrollTop = chatMessages.scrollHeight;
+
                 let fileId = "";
-                // 如果选了附件，先执行上传
                 if (selectedAttachmentFile) {
                     try {
                         const uploadRes = await uploadFile(selectedAttachmentFile);
@@ -266,7 +242,7 @@
                         return;
                     }
                 }
-                // 组装SSE参数，带上file_id
+
                 const params = new URLSearchParams();
                 params.append("mode", "bot");
                 params.append("user_id", "123456");
@@ -276,6 +252,7 @@
                 }
                 const url = `${baseUrl}/api/stream?${params.toString()}`;
                 evtSource = new EventSource(url);
+
                 evtSource.onmessage = (e) => {
                     if (e.data === "PING") return;
                     if (e.data === "[DONE]") {
@@ -286,6 +263,11 @@
                     }
                     try {
                         const obj = JSON.parse(e.data);
+                        if (obj.content) {
+                            loadingTipDom.remove();
+                            aiContentDom.innerText += obj.content;
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
                         if (obj.type === "answer") {
                             loadingTipDom.remove();
                             aiContentDom.innerText += obj.delta;
@@ -299,7 +281,7 @@
                     evtSource.close();
                     selectedAttachmentFile = null;
                     fileInput.value = '';
-                    loadingTipDom.remove();
+                    if (loadingTipDom) loadingTipDom.remove();
                     aiContentDom.innerText += "请求出错";
                 };
             }
@@ -316,3 +298,4 @@
     </script>
 </body>
 </html>
+
