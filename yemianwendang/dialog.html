@@ -307,28 +307,32 @@
         const url = `${baseUrl}/api/stream?${params.toString()}`;
         evtSource = new EventSource(url);
 
-        evtSource.onmessage = (e) => {
-          if (e.data === "PING") return;
-          if (e.data === "[DONE]") {
-            evtSource.close();
-            selectedAttachmentFile = null;
-            fileInput.value = '';
-            return;
-          }
-          try {
-            const obj = JSON.parse(e.data);
-            // 过滤控制事件：generate_answer_finish、无content的包直接跳过
-            if (obj.msg_type === "generate_answer_finish") return;
-            // 只有存在content并且是增量文本才追加
-            if (obj.content && typeof obj.content === "string") {
-              loadingTipDom.remove();
-              aiContentDom.innerText += obj.content;
-              chatMessages.scrollTop = chatMessages.scrollHeight;
-            }
-          } catch (err) {
-            console.log('解析失败', e.data);
-          }
-        };
+evtSource.onmessage = (e) => {
+  if (e.data === "PING") return;
+  if (e.data === "[DONE]") {
+    evtSource.close();
+    selectedAttachmentFile = null;
+    fileInput.value = '';
+    return;
+  }
+  try {
+    const obj = JSON.parse(e.data);
+    // 过滤结束包、控制包
+    if (obj.msg_type === "generate_answer_finish" || obj.msg_type === "generate_answer_complete") {
+      return;
+    }
+    // 只拿增量文本
+    if (obj.content && typeof obj.content === "string") {
+      loadingTipDom.remove();
+      aiContentDom.innerText += obj.content;
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+  } catch (err) {
+    // 解析失败直接丢弃这条数据，不渲染
+    console.log('解析失败', e.data);
+  }
+};
+
 
         evtSource.onerror = () => {
           evtSource.close();
