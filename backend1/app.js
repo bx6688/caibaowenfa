@@ -174,77 +174,76 @@ app.get('/api/stream', async (req, res) => {
       res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
       res.end();
     }
-  }
-else if (mode === 'workflow') {
-  try {
-    let sendParams = {};
-    if (workflow_id === WF_CONTRACT) {
-      sendParams.input = params.file_id;
-    } else {
-      sendParams = params;
-    }
-    const cozeResp = await axios({
-      method: "POST",
-      url: COZE_BASE + "/v1/workflow/stream_run",
-      headers: {
-        "Authorization": "Bearer " + COZE_PAT,
-        "Content-Type": "application/json"
-      },
-      data: {
-        workflow_id: workflow_id,
-        parameters: sendParams
-      },
-      responseType: "stream"
-    });
-    let resultData = {};
+  } else if (mode === 'workflow') {
+    try {
+            // ========== 插在这里开始 ==========
+     let sendParams = {};
+if (workflow_id === WF_CONTRACT) {
+  sendParams.input = params.file_id;
+} else {
+  sendParams = params;
+}
+      // ========== 插在这里结束 ==========
+      const cozeResp = await axios({
+        method: "POST",
+        url: `${COZE_BASE}/v1/workflow/stream_run`,
+        headers: {
+          "Authorization": `Bearer ${COZE_PAT}`,
+          "Content-Type": "application/json"
+        },
+        data: {
+          workflow_id,
+          parameters: sendParams  // 这里把 params 改成 sendParams
+        },
+        responseType: "stream"
+      });
+      let resultData = {};
 
-    cozeResp.data.on('data', function(chunk) {
-      const str = chunk.toString();
-      const lines = str.split('\n');
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        if (!line.trim()) {
-          continue;
-        }
-        try {
-          const raw = line.replace(/^data: /, '');
-          const obj = JSON.parse(raw);
-          if (obj.type === "workflow_finish") {
-            resultData = obj.data.output;
+      cozeResp.data.on('data', (chunk) => {
+        const str = chunk.toString();
+        const lines = str.split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const obj = JSON.parse(line.replace(/^data: /, ''));
+            if (obj.type === "workflow_finish") {
+              resultData = obj.data.output;
+            }
+          } catch (e) {
+            // 忽略解析错误行
           }
-        } catch (e) {
-
         }
-      }
-    });
+      });
 
-    cozeResp.data.on('end', async function() {
-      if (workflow_id === WF_CASE_SEARCH) {
-        res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
-        res.write("data: [DONE]\n\n");
+      cozeResp.data.on('end', async () => {
+        if (workflow_id === WF_CASE_SEARCH) {
+          res.write(`data: ${JSON.stringify({ type: "case", data: resultData })}\n\n`);
+          res.write(`data: [DONE]\n\n`);
+          res.end();
+        } else {
+          let outputText = "";
+          if (workflow_id === WF_OVERSEA) outputText = resultData?.content;
+          if (workflow_id === WF_COMPLAINT) outputText = resultData?.pleading_text;
+          if (workflow_id === WF_CONTRACT) outputText = resultData?.output;
+          // 关键修复：强制转字符串，空值兜底，防止for of迭代报错
+          outputText = typeof outputText === "string" ? outputText : "";
+          await streamText(res, outputText);
+        }
+      });
+
+
+      cozeResp.data.on('error', (e) => {
+        res.write(`data: 流异常：${e.message}\n\n`);
         res.end();
-      } else {
-        let outputText = "";
-        if (workflow_id === WF_COMPLAINT) outputText = resultData?.pleading_text;
-        if (workflow_id === WF_CONTRACT) outputText = resultData?.output;
-        outputText = typeof outputText === "string" ? outputText : "";
-        await streamText(res, outputText);
-      }
-    });
-
-    cozeResp.data.on('error', function(e) {
-      res.write("data: 流异常：" + e.message + "\n\n");
+      });
+    } catch (err) {
+      res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
       res.end();
-    });
-  } catch (err) {
-    res.write("data: 请求失败：" + (err.response?.data?.error || err.message) + "\n\n");
+    }
+  } else {
+    res.write(`data: 错误：mode参数非法\n\n`);
     res.end();
   }
-}
-} else {
-  res.write(`data: 错误：mode参数非法\n\n`);
-  res.end();
-}
 });
 
 const PORT = process.env.PORT || 3000;
@@ -287,4 +286,3 @@ app.post('/api/workflow/contract', async (req, res) => {
     });
   }
 });
-
