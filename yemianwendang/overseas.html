@@ -564,46 +564,47 @@ document.addEventListener('DOMContentLoaded', function () {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    submitBtn.addEventListener('click', function () {
-        if (submitBtn.disabled) return;
-        if(evtSource) evtSource.close();
+submitBtn.addEventListener('click', function () {
+    if (submitBtn.disabled) return;
+    if(evtSource) evtSource.close();
 
-        const payload = {
-            business_type: formState.business_type.trim(),
-            target_region: formState.target_region.trim(),
-            user_query: formState.user_query.trim()
-        };
-        showLoading();
-        resultContent.innerHTML = '';
+    const payload = {
+        business_type: formState.business_type.trim(),
+        target_region: formState.target_region.trim(),
+        user_query: formState.user_query.trim()
+    };
+    showLoading();
+    resultContent.innerHTML = '';
 
-        const params = new URLSearchParams();
-        params.append("mode","workflow");
-        params.append("workflow_id","7702680885376614438");
-        params.append("business_type", payload.business_type);
-        params.append("target_region", payload.target_region);
-        params.append("user_query", payload.user_query);
+    const params = new URLSearchParams();
+    params.append("mode","workflow");
+    params.append("workflow_id","7702680885376614438");
+    params.append("business_type", payload.business_type);
+    params.append("target_region", payload.target_region);
+    params.append("user_query", payload.user_query);
 
-        const url = `${baseUrl}/api/stream?${params.toString()}`;
-        evtSource = new EventSource(url);
+    const url = `${baseUrl}/api/stream?${params.toString()}`;
+    evtSource = new EventSource(url);
 
-        evtSource.onmessage = (e) => {
-            if(e.data === "PING") return;
-            if(e.data === "[DONE]"){
-                evtSource.close();
-                showResult();
-                return;
-            }
-            resultContent.innerHTML += e.data;
-            const container = resultContent.parentElement;
-            container.scrollTop = container.scrollHeight;
-        };
-
-        evtSource.onerror = () => {
+    evtSource.onmessage = (e) => {
+        if(e.data === "[DONE]"){
             evtSource.close();
-            loadingIndicator.style.display="none";
-            alert("请求异常，请重试");
-        };
-    });
+            showResult();
+            return;
+        }
+        const span = document.createElement('span');
+        span.textContent = e.data;
+        resultContent.appendChild(span);
+        const container = resultContent.parentElement;
+        container.scrollTop = container.scrollHeight;
+    };
+
+    evtSource.onerror = () => {
+        evtSource.close();
+        loadingIndicator.style.display="none";
+        alert("请求异常，请重试");
+    };
+});
 
     function escapeHtml(str) {
         const div = document.createElement('div');
