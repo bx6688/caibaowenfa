@@ -247,4 +247,30 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("服务启动，端口：", PORT);
 });
+// ========== 新增：合同审查 同步run接口【独立，不影响智能对话SSE】 ==========
+app.post('/api/workflow/contract', async (req, res) => {
+  try {
+    const { workflow_id, file_id } = req.body;
+    const cozeRes = await axios.post('https://api.coze.cn/v1/workflow/run',
+      {
+        workflow_id: workflow_id,
+        parameters: {
+          input: file_id
+        }
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAT}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    res.json(cozeRes.data);
+  } catch (err) {
+    console.log('合同审查接口报错：', err.response?.data || err.message);
+    res.status(500).json({
+      error: err.response?.data ?? err.message
+    });
+  }
+});
 
