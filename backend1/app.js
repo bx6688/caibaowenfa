@@ -246,12 +246,11 @@ app.get('/api/stream', async (req, res) => {
     res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
     res.end();
   }
+}   // ←【在这里新增这一行大括号】
+} else {
+  res.write(`data: 错误：mode参数非法\n\n`);
+  res.end();
 }
-
-  } else {
-    res.write(`data: 错误：mode参数非法\n\n`);
-    res.end();
-  }
 });
 
 const PORT = process.env.PORT || 3000;
