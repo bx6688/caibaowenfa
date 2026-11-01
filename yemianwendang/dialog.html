@@ -290,17 +290,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = `${baseUrl}/api/stream?${params.toString()}`;
         evtSource = new EventSource(url);
 
-        evtSource.onmessage = (e) => {
-            if(e.data === "PING") return;
-            if(e.data === "[DONE]"){
-                evtSource.close();
-                selectedAttachmentFile = null;
-                fileInput.value = '';
-                return;
-            }
-            aiContentDom.innerText += e.data;
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        };
+evtSource.onmessage = (e) => {
+  if(e.data === "PING") return;
+  if(e.data === "[DONE]"){
+    evtSource.close();
+    selectedAttachmentFile = null;
+    fileInput.value = '';
+    return;
+  }
+  try {
+    const obj = JSON.parse(e.data);
+    if (obj.content) {
+      aiContentDom.innerText += obj.content;
+    }
+  } catch (err) {
+    aiContentDom.innerText += e.data;
+  }
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+};
         evtSource.onerror = ()=>{
             evtSource.close();
             selectedAttachmentFile = null;
