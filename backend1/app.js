@@ -4,6 +4,7 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
+const FormData = require('form-data');
 
 const app = express();
 app.use(cors());
@@ -26,7 +27,7 @@ const COZE_BASE = "https://api.coze.cn";
 
 async function streamText(res, text) {
     for (const char of text) {
-        res.write(`data: ${char}\n\n`);
+        res.write(`data: ${JSON.stringify({content: char})}\n\n`);
         await new Promise(r => setTimeout(r, 15));
     }
     res.write(`data: [DONE]\n\n`);
@@ -43,12 +44,15 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
         }
 
         const formData = new FormData();
-        const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
-        formData.append('file', blob, req.file.originalname);
+        formData.append('file', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
 
         const cozeResp = await axios.post(`${COZE_BASE}/v1/files/upload`, formData, {
             headers: {
-                "Authorization": `Bearer ${COZE_PAT}`
+                "Authorization": `Bearer ${COZE_PAT}`,
+                ...formData.getHeaders()
             },
             timeout: 120000
         });
@@ -127,12 +131,24 @@ app.get('/api/stream', async (req, res) => {
                 },
                 responseType: "stream"
             });
+
+            let buffer = "";
             cozeResp.data.on('data', chunk => {
-                const str = chunk.toString();
-                const lines = str.split('\n');
+                buffer += chunk.toString();
+                const lines = buffer.split("\n");
+                buffer = lines.pop();
                 for (const line of lines) {
-                    if (!line.trim()) continue;
-                    res.write(`${line}\n\n`);
+                    const trimLine = line.trim();
+                    if (!trimLine || !trimLine.startsWith("data:")) continue;
+                    const raw = trimLine.slice(5).trim();
+                    if(raw === "[DONE]") continue;
+                    try {
+                        const obj = JSON.parse(raw);
+                        if(obj.type === "answer" && obj.delta){
+                            // 转成前端识别的 {content:xxx}
+                            res.write(`data: ${JSON.stringify({content: obj.delta})}\n\n`);
+                        }
+                    } catch(e) {}
                 }
             });
             cozeResp.data.on('end', () => {
@@ -140,11 +156,13 @@ app.get('/api/stream', async (req, res) => {
                 res.end();
             });
             cozeResp.data.on('error', e => {
-                res.write(`data: 流异常：${e.message}\n\n`);
+                res.write(`data: ${JSON.stringify({content:"流异常："+e.message})}\n\n`);
+                res.write(`data: [DONE]\n\n`);
                 res.end();
             });
         } catch (err) {
-            res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
+            res.write(`data: ${JSON.stringify({content:"请求失败："+(err.response?.data?.error || err.message)})}\n\n`);
+            res.write(`data: [DONE]\n\n`);
             res.end();
         }
     } else if (mode === 'workflow') {
@@ -163,9 +181,11 @@ app.get('/api/stream', async (req, res) => {
                 responseType: "stream"
             });
             let resultData = {};
+            let buffer = "";
             cozeResp.data.on('data', chunk => {
-                const str = chunk.toString();
-                const lines = str.split('\n');
+                buffer += chunk.toString();
+                const lines = buffer.split("\n");
+                buffer = lines.pop();
                 for (const line of lines) {
                     if (!line.trim()) continue;
                     try {
@@ -190,15 +210,18 @@ app.get('/api/stream', async (req, res) => {
                 }
             });
             cozeResp.data.on('error', e => {
-                res.write(`data: 流异常：${e.message}\n\n`);
+                res.write(`data: ${JSON.stringify({content:"流异常："+e.message})}\n\n`);
+                res.write(`data: [DONE]\n\n`);
                 res.end();
             });
         } catch (err) {
-            res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
+            res.write(`data: ${JSON.stringify({content:"请求失败："+(err.response?.data?.error || err.message)})}\n\n`);
+            res.write(`data: [DONE]\n\n`);
             res.end();
         }
     } else {
-        res.write(`data: 错误：mode参数非法\n\n`);
+        res.write(`data: ${JSON.stringify({content:"错误：mode参数非法"})}\n\n`);
+        res.write(`data: [DONE]\n\n`);
         res.end();
     }
 })
