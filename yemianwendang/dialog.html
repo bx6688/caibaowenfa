@@ -186,6 +186,21 @@ document.addEventListener('DOMContentLoaded', function () {
         return await resp.json();
     }
 
+    // 打字动画
+    function typeWriter(el, text, speed = 30) {
+        let index = 0;
+        el.innerText = "";
+        function typing() {
+            if (index < text.length) {
+                el.innerText += text.charAt(index);
+                index++;
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                setTimeout(typing, speed);
+            }
+        }
+        typing();
+    }
+
     async function sendMessage() {
         if (evtSource) evtSource.close();
         const messageText = messageInput.value.trim();
@@ -193,14 +208,14 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!sendText && selectedAttachmentFile) {
             sendText = "请分析这份上传的文件";
         }
-        if (!sendText && !selectedAttachmentFile) {
-            return;
-        }
+        if (!sendText && !selectedAttachmentFile) return;
+
         const now = new Date();
         const hours = now.getHours().toString().padStart(2, '0');
         const minutes = now.getMinutes().toString().padStart(2, '0');
         const timeString = `${hours}:${minutes}`;
 
+        // 用户消息
         const userEl = document.createElement('div');
         userEl.className = "message sent";
         let htmlContent = `<div class="message-content">${messageText || "(上传文件)"}`;
@@ -212,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chatMessages.appendChild(userEl);
         messageInput.value = '';
 
+        // AI消息容器
         const aiEl = document.createElement('div');
         aiEl.className = "message received";
         aiEl.innerHTML = `
@@ -254,64 +270,53 @@ document.addEventListener('DOMContentLoaded', function () {
         const url = `${baseUrl}/api/stream?${params.toString()}`;
         evtSource = new EventSource(url);
 
+        let fullText = "";
+        let receiveComplete = false;
 
-        // ✅ 逐片增量事件（打字机核心）
-        evtSource.addEventListener("conversation.message.delta", function (e) {
-            try {
-                const data = JSON.parse(e.data);
-                loadingTipDom.remove();
-                // delta 是新增片段
-                aiContentDom.innerText += data.delta;
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            } catch (err) {
-                console.log("delta解析失败", err, e.data);
-            }
-        });
-
-        // ✅ 消息完整结束兜底（如果没有delta分片，一次性渲染全文）
         evtSource.addEventListener("conversation.message.completed", function (e) {
             try {
                 const data = JSON.parse(e.data);
-                loadingTipDom.remove();
-                // 如果已经有内容了就不再追加，避免重复
-                if (!aiContentDom.innerText.trim()) {
-                    aiContentDom.innerText += data.content;
-                }
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                fullText = data.content;
+                receiveComplete = true;
+                console.log("拿到完整回答", fullText);
             } catch (err) {
-                console.log("completed解析失败", err, e.data);
+                console.log("解析失败", err, e.data);
             }
-        });
-
-        evtSource.addEventListener("conversation.chat.completed", function () {
-            console.log("本轮对话全部结束");
         });
 
         evtSource.addEventListener("done", function () {
             evtSource.close();
             selectedAttachmentFile = null;
             fileInput.value = '';
+            loadingTipDom.remove();
+            if (fullText) {
+                typeWriter(aiContentDom, fullText, 30);
+            } else {
+                aiContentDom.innerText = "未返回内容";
+            }
         });
 
+        // 核心修复：自主规划Agent结束必然断连，只要已经拿到内容，就不报错
         evtSource.onerror = () => {
             evtSource.close();
             selectedAttachmentFile = null;
             fileInput.value = '';
             if (loadingTipDom) loadingTipDom.remove();
-            aiContentDom.innerText += "请求出错";
+            if (receiveComplete && fullText) {
+                typeWriter(aiContentDom, fullText, 30);
+            } else {
+                aiContentDom.innerText = "请求出错";
+            }
         };
     }
-    if (sendButton) sendButton.addEventListener('click', sendMessage);
-    if (messageInput) {
-        messageInput.addEventListener('keypress', function (event) {
-            if (event.key === 'Enter') {
-                sendMessage();
-            }
-        });
-    }
-    if (chatMessages) chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    sendButton.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', function (event) {
+        if (event.key === 'Enter') sendMessage();
+    });
 });
 </script>
+
 
 
 </body>
