@@ -174,7 +174,7 @@ app.get('/api/stream', async (req, res) => {
       res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
       res.end();
     }
-  } else if (mode === 'workflow') {
+  }else if (mode === 'workflow') {
   try {
     let sendParams = {};
     if (workflow_id === WF_CONTRACT) {
@@ -205,31 +205,34 @@ app.get('/api/stream', async (req, res) => {
         try {
           const raw = line.replace(/^data: /, '');
           const obj = JSON.parse(raw);
-          // 新增：出海原生流式消息转发，只对开启流式的出海生效
-          if(obj.event === "message"){
+          // 仅出海：原生流式实时推送片段
+          if (obj.event === "message") {
             res.write(`data: ${obj.data.content}\n\n`);
           }
-          // 原有逻辑不变：捕获workflow_finish，给合同/诉状/案例检索用
+          // 【原有逻辑不动】捕获 workflow_finish，给合同/诉状/案例检索使用
           if (obj.type === "workflow_finish") {
             resultData = obj.data.output;
           }
         } catch (e) {
-          // 跳过解析错误行，不影响其他
+          // 忽略无效行，不中断流
         }
       }
     });
 
     cozeResp.data.on('end', async () => {
+      // 案例检索 原有逻辑不变
       if (workflow_id === WF_CASE_SEARCH) {
         res.write(`data: ${JSON.stringify({ type: "case", data: resultData })}\n\n`);
         res.write(`data: [DONE]\n\n`);
         res.end();
-      } else if (workflow_id === WF_OVERSEA) {
-        // 出海已经实时推送完片段，直接结束
+      }
+      // 出海单独分支：消息已经实时转发，直接结束
+      else if (workflow_id === WF_OVERSEA) {
         res.write(`data: [DONE]\n\n`);
         res.end();
-      } else {
-        // 诉状、合同，完全是你原来的逻辑，一点没改
+      }
+      // 【合同、诉状完全沿用旧逻辑，伪流式，无改动】
+      else {
         let outputText = "";
         if (workflow_id === WF_COMPLAINT) outputText = resultData?.pleading_text;
         if (workflow_id === WF_CONTRACT) outputText = resultData?.output;
@@ -246,7 +249,8 @@ app.get('/api/stream', async (req, res) => {
     res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
     res.end();
   }
-}   // ←【在这里新增这一行大括号】
+}
+
 } else {
   res.write(`data: 错误：mode参数非法\n\n`);
   res.end();
