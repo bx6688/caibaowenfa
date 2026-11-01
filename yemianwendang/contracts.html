@@ -227,6 +227,7 @@
 <div class="form-section">
   <h3>审查结果</h3>
   <div id="contractResult" style="white-space:pre-wrap;min-height:120px;"></div>
+  <button id="openFileBtn" style="display:none;margin-top:10px;padding:6px 12px;background:#3498db;color:#fff;border:none;border-radius:4px;cursor:pointer;">打开生成文件</button>
 </div>
                 <!-- 合同模板 -->
                 <div class="contract-templates">
@@ -309,12 +310,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const baseUrl = "https://caibaowenfa.onrender.com";
-    let evtSource = null;
 
     const uploadBtn = document.getElementById('upload-contract-btn');
     const templateItems = document.querySelectorAll('.template-item');
     const contractItems = document.querySelectorAll('.contract-item');
     const resultBox = document.getElementById('contractResult');
+    const openFileBtn = document.getElementById('openFileBtn');
+    let targetFileUrl = "";
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', async function() {
@@ -325,29 +327,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 const f = e.target.files[0];
                 if(!f) return;
                 resultBox.innerText = "正在上传文件到Coze...";
+                openFileBtn.style.display = "none";
                 const formData = new FormData();
                 formData.append("file",f);
                 const uploadResp = await fetch(`${baseUrl}/api/upload-coze-file`,{method:"POST",body:formData});
                 const upJson = await uploadResp.json();
-                if(!upJson.ok){
-                    resultBox.innerText = "上传失败："+upJson.msg;
+                console.log("上传返回：", upJson);
+                if(!uploadResp.ok){
+                    resultBox.innerText = "上传失败："+(upJson.msg || "未知错误");
                     return;
                 }
-                const params = new URLSearchParams();
-                params.append("mode","workflow");
-                params.append("workflow_id","7701991444680769578");
-                params.append("input", upJson.file_id);
-
-                if(evtSource) evtSource.close();
-                resultBox.innerText = "";
-                const url = `${baseUrl}/api/stream?${params.toString()}`;
-                evtSource = new EventSource(url);
-                evtSource.onmessage = (ev)=>{
-                    if(ev.data==="PING") return;
-                    if(ev.data==="[DONE]"){evtSource.close();return;}
-                    resultBox.innerText += ev.data;
-                };
-                evtSource.onerror = ()=>{evtSource.close();alert("接口异常");};
+                // 上传成功，调用合同审查同步接口
+                resultBox.innerText = "正在执行合同审查，请耐心等待...";
+                const checkResp = await fetch(`${baseUrl}/api/workflow/contract`, {
+                    method:"POST",
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body:JSON.stringify({
+                        workflow_id:"7701991444680769578",
+                        file_id: upJson.file_id
+                    })
+                });
+                const checkRes = await checkResp.json();
+                console.log("审查接口返回：", checkRes);
+                if(!checkResp.ok){
+                    resultBox.innerText = "审查失败："+(checkRes.error || "接口异常");
+                    return;
+                }
+                const fileUrl = checkRes.data?.output?.["create_document-data"];
+                if(fileUrl){
+                    targetFileUrl = fileUrl;
+                    resultBox.innerText = "✅ 合同审查完成，文件已生成";
+                    openFileBtn.style.display = "block";
+                    openFileBtn.onclick = ()=>{
+                        window.open(targetFileUrl,"_blank");
+                    }
+                }else{
+                    resultBox.innerText = "⚠️ 审查完成，但没有读取到生成文件链接";
+                }
             }
         });
     }
