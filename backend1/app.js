@@ -201,20 +201,6 @@ app.get('/api/stream', async (req, res) => {
         },
         responseType: "stream"
       });
-      const cozeResp = await axios({
-        method: "POST",
-        url: `${COZE_BASE}/v1/workflow/stream_run`,
-        headers: {
-          "Authorization": `Bearer ${COZE_PAT}`,
-          "Content-Type": "application/json"
-        },
-        data: {
-          workflow_id,
-          parameters: params
-        },
-        responseType: "stream"
-      });
-
       let resultData = {};
 
       cozeResp.data.on('data', (chunk) => {
