@@ -216,13 +216,18 @@
             <!-- 合同审查内容 -->
             <div class="contracts-container">
                 <!-- 上传区域 -->
-                <div class="upload-section">
-                    <div class="upload-icon">📄</div>
-                    <div class="upload-title">上传合同文件</div>
-                    <div class="upload-description">支持PDF、Word、TXT等格式，文件大小不超过10MB</div>
-                    <button class="upload-btn" id="upload-contract-btn">选择文件上传</button>
-                </div>
-                
+<div class="upload-section">
+  <div class="upload-icon"> 📄 </div>
+  <div class="upload-title">上传合同文件</div>
+  <div class="upload-description">支持PDF、Word、TXT等格式，文件大小不超过10MB</div>
+  <button class="upload-btn" id="upload-contract-btn">选择文件上传</button>
+</div>
+
+<!-- 在这里插入结果容器 -->
+<div class="form-section">
+  <h3>审查结果</h3>
+  <div id="contractResult" style="white-space:pre-wrap;min-height:120px;"></div>
+</div>
                 <!-- 合同模板 -->
                 <div class="contract-templates">
                     <div class="templates-title">常用合同模板</div>
@@ -301,38 +306,67 @@
     </div>
 
     <script src="script.js"></script>
-    <script>
-        // 合同审查页面特定的JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            const uploadBtn = document.getElementById('upload-contract-btn');
-            const templateItems = document.querySelectorAll('.template-item');
-            const contractItems = document.querySelectorAll('.contract-item');
-            
-            // 上传按钮点击事件
-            if (uploadBtn) {
-                uploadBtn.addEventListener('click', function() {
-                    // 模拟文件上传对话框
-                    alert('将打开文件选择对话框，上传合同文件');
-                });
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const baseUrl = "https://caibaowenfa.onrender.com";
+    let evtSource = null;
+
+    const uploadBtn = document.getElementById('upload-contract-btn');
+    const templateItems = document.querySelectorAll('.template-item');
+    const contractItems = document.querySelectorAll('.contract-item');
+    const resultBox = document.getElementById('contractResult');
+
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', async function() {
+            const fileInputDom = document.createElement('input');
+            fileInputDom.type = 'file';
+            fileInputDom.click();
+            fileInputDom.onchange = async e=>{
+                const f = e.target.files[0];
+                if(!f) return;
+                resultBox.innerText = "正在上传文件到Coze...";
+                const formData = new FormData();
+                formData.append("file",f);
+                const uploadResp = await fetch(`${baseUrl}/api/upload-coze-file`,{method:"POST",body:formData});
+                const upJson = await uploadResp.json();
+                if(!upJson.ok){
+                    resultBox.innerText = "上传失败："+upJson.msg;
+                    return;
+                }
+                const params = new URLSearchParams();
+                params.append("mode","workflow");
+                params.append("workflow_id","7701991444680769578");
+                params.append("input", upJson.file_id);
+
+                if(evtSource) evtSource.close();
+                resultBox.innerText = "";
+                const url = `${baseUrl}/api/stream?${params.toString()}`;
+                evtSource = new EventSource(url);
+                evtSource.onmessage = (ev)=>{
+                    if(ev.data==="PING") return;
+                    if(ev.data==="[DONE]"){evtSource.close();return;}
+                    resultBox.innerText += ev.data;
+                };
+                evtSource.onerror = ()=>{evtSource.close();alert("接口异常");};
             }
-            
-            // 模板点击事件
-            templateItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const templateName = this.querySelector('.template-name').textContent;
-                    alert(`将使用${templateName}模板`);
-                });
-            });
-            
-            // 合同项点击事件
-            contractItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const contractName = this.querySelector('.contract-name').textContent;
-                    const contractStatus = this.querySelector('.contract-status').textContent;
-                    alert(`查看合同：${contractName}\n状态：${contractStatus}`);
-                });
-            });
         });
-    </script>
+    }
+
+    templateItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const templateName = this.querySelector('.template-name').textContent;
+            alert(`将使用${templateName}模板`);
+        });
+    });
+
+    contractItems.forEach(item => {
+        item.addEventListener('click', function() {
+            const contractName = this.querySelector('.contract-name').textContent;
+            const contractStatus = this.querySelector('.contract-status').textContent;
+            alert(`查看合同：${contractName}\n状态：${contractStatus}`);
+        });
+    });
+});
+</script>
 </body>
 </html>
