@@ -227,7 +227,6 @@ if (targetWfId === "7702680885376614438") {
       }
     }
   });
-}
         cozeResp.data.on('end', () => {
           res.write(`data: [DONE]\n\n`);
           res.end();
