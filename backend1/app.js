@@ -208,17 +208,21 @@ app.get('/api/stream', async (req, res) => {
           try {
             const raw = line.replace(/^data: /, '');
             const obj = JSON.parse(raw);
-            // 出海工作流，实时吐出message内容
-            if (workflow_id === WF_OVERSEA && obj.event === "message") {
-              res.write("data: " + obj.data.content + "\n\n");
-            }
-            if (obj.type === "workflow_finish") {
-              resultData = obj.data.output;
-            }
-          } catch (e) {
-          }
+// ========== 企业出海：监听 message 事件（适配你开启流式输出的结束节点） ==========
+      if (workflow_id === WF_OVERSEA) {
+        if(obj.event === "message"){
+          const content = obj.data?.content || "";
+          res.write("data: " + content + "\n\n");
         }
-      });
+      }
+      if (obj.type === "workflow_finish") {
+        resultData = obj.data.output;
+      }
+    } catch (e) {
+      // 忽略解析异常行（心跳、空行）
+    }
+  }
+});
 
       cozeResp.data.on('end', async function() {
         // 出海已经实时推流完成，直接结束
