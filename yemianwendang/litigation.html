@@ -651,23 +651,30 @@ document.addEventListener('DOMContentLoaded', function() {
             evtSource = new EventSource(url);
 
             evtSource.onmessage = (e) => {
-                if(e.data === "PING") return;
-                if(e.data === "[DONE]"){
-                    evtSource.close();
-                    return;
-                }
-                previewContent.innerHTML = `
+              if(e.data === "PING") return;
+              if(e.data === "[DONE]"){
+                evtSource.close();
+                return;
+              }
+              try{
+                const res = JSON.parse(e.data);
+                if(res.pleading_text){
+                  previewContent.innerHTML = `
                     <div style="padding:20px;text-align:center;">
-                        <p style="font-size:16px;margin-bottom:16px;">✅ 诉状生成成功！</p>
-                        <a href="${e.data}" target="_blank" style="display:inline-block;padding:12px 28px;background:#1a56db;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
-                            📄 点击下载民事起诉状（docx）
-                        </a>
+                      <p style="font-size:16px;margin-bottom:16px;">✅ 诉状生成成功！</p>
+                      <a href="${res.pleading_text}" target="_blank" style="display:inline-block;padding:12px">
+                        点击下载民事起诉状（docx）
+                      </a>
                     </div>
-                 `;
+                  `;
+                }
+              }catch(err){
+                previewContent.innerHTML = e.data;
+              }
             };
+
         });
     }
-
 });
 </script>
 </body>
