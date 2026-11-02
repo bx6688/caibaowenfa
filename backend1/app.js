@@ -211,24 +211,24 @@ if (targetWfId === "7702680885376614438") {
     const rawStr = chunk.toString('utf8');
     console.log("【Coze原始流】", rawStr);
     const lines = rawStr.split('\n');
-    let currentEvent = ""; // 用来缓存 event 字段
+    let currentEvent = "";
     for (const line of lines) {
       const trimLine = line.trim();
       if (!trimLine) continue;
-      // 捕获 event 行
       if (trimLine.startsWith('event: ')) {
         currentEvent = trimLine.slice(7);
         continue;
       }
-      // 捕获 data 行
       if (trimLine.startsWith('data: ')) {
         try {
           const payload = JSON.parse(trimLine.slice(6));
-          // 只处理 Message 事件，跳过PING、Done
-          if (currentEvent !== 'Message') continue;
-          const outText = payload.data?.content;
-          if (outText && outText !== "") {
-            res.write(`data: ${outText}\n\n`);
+          // ✅ 匹配 End 节点包，同时跳过PING空包
+          if (currentEvent === 'PING') continue;
+          if (payload.node_type === "End") {
+            const outText = payload.data?.content;
+            if (outText && outText !== "") {
+              res.write(`data: ${outText}\n\n`);
+            }
           }
         } catch (errParse) {
           console.log("解析异常", errParse);
