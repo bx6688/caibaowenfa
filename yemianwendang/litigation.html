@@ -512,7 +512,6 @@
                     <div class="preview-actions">
                         <button class="btn btn-prev" id="step5-prev">上一步</button>
                         <button class="btn btn-generate" id="generate-btn">生成完整诉状</button>
-                        <button class="btn btn-next" id="download-btn">下载Word文档</button>
                     </div>
                 </div>
             </div>
@@ -575,13 +574,6 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSteps(5);
     });
     if(step5Prev) step5Prev.addEventListener('click', ()=>updateSteps(4));
-
-    // 【下载按钮 放在外面，不属于生成按钮点击事件】
-    if(downloadBtn){
-        downloadBtn.addEventListener('click', function(){
-            alert('下载Word文档功能待实现');
-        });
-    }
 
     // 【预览函数 放在外层】
     function generatePreview() {
