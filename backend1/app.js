@@ -180,12 +180,15 @@ app.get('/api/stream', async (req, res) => {
       let targetWfId = workflow_id;
       let sendParams = { ...params };
 
-      // 匹配出海ID，和你的curl一致
+      // 出海固定ID
       if (targetWfId === "7702680885376614438") {
         targetWfId = "7702680885376614438";
       } else if (workflow_id === WF_CONTRACT) {
         sendParams = { input: params.file_id };
       }
+
+      // 先发一条占位，防止浏览器直接报 No data
+      res.write(`data: 正在请求Coze...\n\n`);
 
       const cozeResp = await axios({
         method: "POST",
@@ -220,8 +223,13 @@ app.get('/api/stream', async (req, res) => {
               const msg = JSON.parse(jsonStr);
               console.log('[OVERSEA_DATA]', msg);
               if (targetWfId === "7702680885376614438") {
-                if ((currentEvent === 'Message' || currentEvent === 'message') && msg.content) {
-                  res.write(`data: ${msg.content}\n\n`);
+                // 兼容Coze所有常见事件名
+                if ((currentEvent === 'Message' || currentEvent === 'message' || currentEvent === 'output')) {
+                  if(msg.content){
+                    res.write(`data: ${msg.content}\n\n`);
+                  }else if(msg.data){
+                    res.write(`data: ${msg.data}\n\n`);
+                  }
                 }
               }
             } catch (err) {
@@ -237,7 +245,7 @@ app.get('/api/stream', async (req, res) => {
           res.end();
           return;
         }
-        // 原有逻辑原样保留
+        // ===== 原有逻辑原样保留 =====
         if (targetWfId === WF_CASE_SEARCH) {
           res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
           res.write("data: [DONE]\n\n");
@@ -252,11 +260,13 @@ app.get('/api/stream', async (req, res) => {
       });
 
       cozeResp.data.on('error', function(e) {
-        res.write("data: 流异常：" + e.message + "\n\n");
+        console.log('[COZE_STREAM_ERR]', e);
+        res.write(`data: 流异常：${e.message}\n\n`);
         res.end();
       });
     } catch (err) {
-      res.write("data: 请求失败：" + (err.response?.data?.error || err.message) + "\n\n");
+      console.log('[AXIOS_ERR]', err?.response?.data || err.message);
+      res.write(`data: 请求失败：${JSON.stringify(err?.response?.data || err.message)}\n\n`);
       res.end();
     }
   }
