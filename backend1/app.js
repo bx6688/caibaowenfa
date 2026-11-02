@@ -222,12 +222,22 @@ if (targetWfId === "7702680885376614438") {
       if (trimLine.startsWith('data: ')) {
         try {
           const payload = JSON.parse(trimLine.slice(6));
-          // ✅ 匹配 End 节点包，同时跳过PING空包
+          // 跳过PING心跳
           if (currentEvent === 'PING') continue;
-          if (payload.node_type === "End") {
-            const outText = payload.data?.content;
-            if (outText && outText !== "") {
-              res.write(`data: ${outText}\n\n`);
+          // Message 和 End 两种包都处理
+          if (currentEvent === 'Message' || payload.node_type === "End") {
+            let innerStr = payload.data?.content;
+            if (!innerStr) continue;
+            // ✅ 关键：二次解析，解开套壳JSON
+            try {
+              const innerJson = JSON.parse(innerStr);
+              const realText = innerJson.content;
+              if (realText && realText !== "") {
+                res.write(`data: ${realText}\n\n`);
+              }
+            } catch (e) {
+              // 如果不是嵌套json，直接原样输出兜底
+              res.write(`data: ${innerStr}\n\n`);
             }
           }
         } catch (errParse) {
