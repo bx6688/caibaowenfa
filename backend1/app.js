@@ -180,14 +180,12 @@ app.get('/api/stream', async (req, res) => {
       let targetWfId = workflow_id;
       let sendParams = { ...params };
 
-      // 出海固定ID
       if (targetWfId === "7702680885376614438") {
         targetWfId = "7702680885376614438";
       } else if (workflow_id === WF_CONTRACT) {
         sendParams = { input: params.file_id };
       }
 
-      // 先发一条占位，防止浏览器直接报 No data
       res.write(`data: 正在请求Coze...\n\n`);
 
       const cozeResp = await axios({
@@ -204,16 +202,19 @@ app.get('/api/stream', async (req, res) => {
         responseType: "stream"
       });
       let resultData = {};
+      let bufCache = Buffer.alloc(0);
 
       cozeResp.data.on('data', (chunk) => {
-        const rawText = chunk.toString('utf8');
-        console.log('[OVERSEA_RAW]', rawText);
-        const lines = rawText.split(/\n/);
-        let currentEvent = '';
+        bufCache = Buffer.concat([bufCache, chunk]);
+        const str = bufCache.toString('utf8');
+        const lines = str.split('\n');
+        const lastLine = lines.pop();
+        bufCache = Buffer.from(lastLine, 'utf8');
+
         for (const line of lines) {
           if (!line.trim()) continue;
           if (line.startsWith('event: ')) {
-            currentEvent = line.replace('event: ','').trim();
+            const currentEvent = line.replace('event: ','').trim();
             console.log('[OVERSEA_EVENT]', currentEvent);
             continue;
           }
@@ -223,12 +224,12 @@ app.get('/api/stream', async (req, res) => {
               const msg = JSON.parse(jsonStr);
               console.log('[OVERSEA_DATA]', msg);
               if (targetWfId === "7702680885376614438") {
-                // 兼容Coze所有常见事件名
                 if ((currentEvent === 'Message' || currentEvent === 'message' || currentEvent === 'output')) {
-                  if(msg.content){
-                    res.write(`data: ${msg.content}\n\n`);
-                  }else if(msg.data){
-                    res.write(`data: ${msg.data}\n\n`);
+                  let outText = '';
+                  if(msg.content) outText = msg.content;
+                  else if(msg.data) outText = msg.data;
+                  if(outText){
+                    res.write(`data: ${outText}\n\n`);
                   }
                 }
               }
@@ -240,12 +241,23 @@ app.get('/api/stream', async (req, res) => {
       });
 
       cozeResp.data.on('end', async function() {
+        if (bufCache.length > 0) {
+          const remainStr = bufCache.toString('utf8');
+          if(remainStr.startsWith('data: ')){
+            const jsonStr = remainStr.slice(6);
+            try {
+              const msg = JSON.parse(jsonStr);
+              let outText = msg.content || msg.data || '';
+              if(outText) res.write(`data: ${outText}\n\n`);
+            } catch(e){}
+          }
+        }
         if (targetWfId === "7702680885376614438") {
           res.write("data: [DONE]\n\n");
           res.end();
           return;
         }
-        // ===== 原有逻辑原样保留 =====
+        // 原有逻辑，原样保留
         if (targetWfId === WF_CASE_SEARCH) {
           res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
           res.write("data: [DONE]\n\n");
@@ -270,6 +282,7 @@ app.get('/api/stream', async (req, res) => {
       res.end();
     }
   }
+
 
  else {
     res.write(`data: 错误：mode参数非法\n\n`);
