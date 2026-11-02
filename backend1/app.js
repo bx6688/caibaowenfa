@@ -199,24 +199,30 @@ app.get('/api/stream', async (req, res) => {
 
 cozeResp.data.on('data', (chunk) => {
   const rawText = chunk.toString('utf8');
+  // 打印原始流，去Render日志里看真实返回
+  console.log('[OVERSEA_RAW]', rawText);
   const lines = rawText.split(/\r?\n/);
   let currentEvent = '';
   for (const line of lines) {
     if (!line.trim()) continue;
     if (line.startsWith('event: ')) {
       currentEvent = line.replace('event: ','').trim();
+      console.log('[OVERSEA_EVENT]', currentEvent);
       continue;
     }
     if (line.startsWith('data: ')) {
       const jsonStr = line.slice(6);
       try {
         const msg = JSON.parse(jsonStr);
+        console.log('[OVERSEA_DATA]', msg);
         if (workflow_id === WF_OVERSEA) {
-          if (currentEvent === 'Message' && msg.content) {
+          // 兼容两种：小写message / 大写Message
+          if ((currentEvent === 'Message' || currentEvent === 'message') && msg.content) {
             res.write(`data: ${msg.content}\n\n`);
           }
         }
       } catch (err) {
+        console.log('[OVERSEA_PARSE_ERR]', err.message, jsonStr);
       }
     }
   }
