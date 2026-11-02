@@ -22,38 +22,12 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        .search-box {
-            display: flex;
-            margin-bottom: 20px;
-        }
-
-        #case-search-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px 0 0 4px;
-            font-size: 16px;
-        }
-
-        .search-btn {
-            padding: 0 20px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 0 4px 4px 0;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
-        }
-
-        .search-btn:hover {
-            background-color: #2980b9;
-        }
-
+        /* ========== 改动：移除原来单独的search-box，筛选行包含关键词框 ========== */
         .search-filters {
             display: flex;
             flex-wrap: wrap;
             gap: 15px;
+            align-items: center;
         }
 
         .filter-group {
@@ -74,6 +48,30 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
+        }
+        /* 关键词输入框单独的最小宽度 */
+        .filter-keyword input{
+            min-width:260px;
+        }
+        /* 搜索按钮容器，居中 */
+        .search-btn-wrap{
+            width:100%;
+            text-align:center;
+            margin-top:18px;
+        }
+        .search-btn {
+            padding: 8px 22px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+
+        .search-btn:hover {
+            background-color: #2980b9;
         }
 
         /* 结果区域样式 */
@@ -431,13 +429,13 @@
                     </div>
                 </div>
                 
-                <!-- 搜索区域 -->
+                <!-- 搜索区域【这里是改动的HTML结构】 -->
                 <div class="search-section">
-                    <div class="search-box">
-                        <input type="text" id="case-search-input" placeholder="输入关键词搜索案例...">
-                        <button class="search-btn">搜索</button>
-                    </div>
                     <div class="search-filters">
+                        <div class="filter-group filter-keyword">
+                            <label>关键词:</label>
+                            <input type="text" id="case-search-input" placeholder="输入关键词搜索案例...">
+                        </div>
                         <div class="filter-group">
                             <label for="case-type">案件类型:</label>
                             <select id="case-type">
@@ -464,6 +462,10 @@
                         <div class="filter-group">
                             <label for="case-court">审理法院:</label>
                             <input type="text" id="case-court" placeholder="输入法院名称">
+                        </div>
+                        <!-- 搜索按钮容器，单独一行居中 -->
+                        <div class="search-btn-wrap">
+                            <button class="search-btn">搜索</button>
                         </div>
                     </div>
                 </div>
@@ -556,6 +558,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const court = caseCourtInput.value.trim();
         const year = caseYearSelect.value;
         const sort_type = sortBy.value;
+
+        // 新增校验：全部筛选条件为空，拦截
+        const hasFilter = keyword || (case_type !== 'all') || (year !== 'all') || court;
+        if (!hasFilter) {
+            resultsNumber.textContent = "0";
+            caseResults.innerHTML = `<div class="no-results">请至少填写一项筛选条件（关键词、案件类型、年份、审理法院）</div>`;
+            return;
+        }
 
         caseResults.innerHTML = `<div class="no-results">正在AI检索案例...</div>`;
         resultsNumber.textContent = "0";
