@@ -256,7 +256,29 @@ if (targetWfId === "7702680885376614438") {
           console.log("【出海流报错】", err.message);
           res.end();
         });
-      } else {
+      } else if (wfId === WF_COMPLAINT) {
+  // 诉状工作流，只拿最终文件链接，不流式逐字输出
+  let fullText = '';
+  for await (const chunk of cozeStream) {
+    const line = chunk.toString('utf8');
+    const lines = line.split('\n');
+    for (const rawLine of lines) {
+      if (!rawLine.startsWith('data:')) continue;
+      const dataStr = rawLine.replace('data:','').trim();
+      if(!dataStr) continue;
+      try {
+        const payload = JSON.parse(dataStr);
+        if (payload.type === 'message' && payload.content) {
+          fullText = payload.content;
+        }
+      } catch(err) {}
+    }
+  }
+  res.write(`data:${fullText}\n\n`);
+  res.write('data:[DONE]\n\n');
+  return;
+}
+else {
         // ===== 合同审查、其他工作流，原有代码原样保留，一字不改 =====
         let resultData = {};
         cozeResp.data.on('data', (chunk) => {
