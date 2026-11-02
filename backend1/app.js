@@ -206,28 +206,28 @@ app.get('/api/stream', async (req, res) => {
         responseType: "stream"
       });
 
-      if (targetWfId === "7702680885376614438") {
-        cozeResp.data.on('data', chunk => {
-          const rawStr = chunk.toString('utf8');
-          console.log("【Coze原始流】", rawStr);
-          const lines = rawStr.split('\n');
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            if (line.startsWith('data: ')) {
-              try {
-                const payload = JSON.parse(line.slice(6));
-                // ✅ Coze自定义结束变量固定路径 data.outputs.content
-                const outText = payload.data?.outputs?.content;
-                if (outText) {
-                  res.write(`data: ${outText}\n\n`);
-                }
-              } catch (errParse) {
-                // 心跳包、结束包直接透传，不中断
-                res.write(line + '\n\n');
-              }
-            }
+if (targetWfId === "7702680885376614438") {
+  cozeResp.data.on('data', chunk => {
+    const rawStr = chunk.toString('utf8');
+    console.log("【Coze原始流】", rawStr);
+    const lines = rawStr.split('\n');
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      if (line.startsWith('data: ')) {
+        try {
+          const payload = JSON.parse(line.slice(6));
+          // 修正：直接读 content，没有 outputs
+          const outText = payload.data?.content;
+          if (outText) {
+            res.write(`data: ${outText}\n\n`);
           }
-        });
+        } catch (errParse) {
+          res.write(line + '\n\n');
+        }
+      }
+    }
+  });
+}
         cozeResp.data.on('end', () => {
           res.write(`data: [DONE]\n\n`);
           res.end();
