@@ -554,22 +554,42 @@ document.addEventListener('DOMContentLoaded', function() {
     async function performSearch() {
         if(evtSource) evtSource.close();
         const keyword = caseSearchInput.value.trim();
-        const case_type = caseTypeSelect.value;
+        const raw_case_type = caseTypeSelect.value;
         const court = caseCourtInput.value.trim();
-        const year = caseYearSelect.value;
+        const raw_year = caseYearSelect.value;
         const sort_type = sortBy.value;
 
-        // 新增校验：全部筛选条件为空，拦截
-        const hasFilter = keyword || (case_type !== 'all') || (year !== 'all') || court;
-        if (!hasFilter) {
-            resultsNumber.textContent = "0";
-            caseResults.innerHTML = `<div class="no-results">请至少填写一项筛选条件（关键词、案件类型、年份、审理法院）</div>`;
-            return;
+        // 映射：前端英文value → Coze脚本白名单中文
+        const typeMap = {
+            "all": "全部类型",
+            "contract": "合同纠纷",
+            "labor": "劳动纠纷",
+            "property": "物权纠纷",
+            "tort": "侵权责任",
+            "intellectual": "知识产权",
+            "family": "婚姻家庭"
+        };
+        const case_type = typeMap[raw_case_type];
+        // 年份转换：前端all → 0，其他直接传年份字符串
+        const year = raw_year === 'all' ? 0 : raw_year;
+
+        // ===== 新版校验规则 =====
+        const isAllType = case_type === "全部类型";
+        const isAllYear = year === 0;
+        // 触发校验：类型是全部 或者 年份是全部
+        if (isAllType || isAllYear) {
+            // 有效项：关键词不为空 或者 法律援助中心不为空 或者 案件类型不是全部类型
+            const valid = keyword || court || (!isAllType);
+            if (!valid) {
+                alert('【案件类型为全部类型】或【年份范围为全部年份】时，请至少填写：关键词、法律援助中心、选择具体案件类型其中一项！');
+                return;
+            }
         }
 
         caseResults.innerHTML = `<div class="no-results">正在AI检索案例...</div>`;
         resultsNumber.textContent = "0";
 
+        // 参数和Coze开始节点输入变量一一对应
         const params = new URLSearchParams();
         params.append("mode","workflow");
         params.append("workflow_id","7702373812499480630");
@@ -655,6 +675,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(e.target === caseDetailModal) caseDetailModal.style.display='none';
     });
 });
+
 </script>
 </body>
 </html>
