@@ -199,7 +199,7 @@ app.get('/api/stream', async (req, res) => {
       });
 
       if (targetWfId === "7702680885376614438") {
-        // ===== 出海专属：解析取出 content 变量输出 =====
+        // ===== 出海，和合同审查解析逻辑完全对齐 =====
         cozeResp.data.on('data', chunk => {
           const str = chunk.toString('utf8');
           const lines = str.split('\n');
@@ -208,13 +208,13 @@ app.get('/api/stream', async (req, res) => {
             if(line.startsWith('data: ')){
               try{
                 const msg = JSON.parse(line.slice(6));
-                // 取结束节点输出的 content
-                const text = msg.content;
+                // 重点：结束节点返回变量content，在 msg.data.content
+                const text = msg.data?.content;
                 if(text !== undefined){
                   res.write(`data: ${text}\n\n`);
                 }
               }catch(e){
-                // 解析失败直接跳过这条消息，不中断流
+                continue;
               }
             }
           }
@@ -228,7 +228,7 @@ app.get('/api/stream', async (req, res) => {
           res.end();
         });
       } else {
-        // ===== 其他工作流（合同审查等），完全保留原有逻辑 =====
+        // ===== 合同审查、其他工作流，原有代码原样保留，一字不改 =====
         let resultData = {};
         cozeResp.data.on('data', (chunk) => {
           const str = chunk.toString('utf8');
