@@ -197,35 +197,31 @@ app.get('/api/stream', async (req, res) => {
       });
       let resultData = {};
 
-cozeResp.data.on('data', function(chunk) {
-  const str = chunk.toString();
-  const lines = str.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+cozeResp.data.on('data', (chunk) => {
+  const rawText = chunk.toString('utf8');
+  const lines = rawText.split(/\r?\n/);
+  let currentEvent = '';
+  for (const line of lines) {
     if (!line.trim()) continue;
-    // 区分SSE原生的 event: 和 data: 行
-    if(line.startsWith('event: ')){
+    if (line.startsWith('event: ')) {
+      currentEvent = line.replace('event: ','').trim();
       continue;
     }
-    if(line.startsWith('data: ')){
+    if (line.startsWith('data: ')) {
+      const jsonStr = line.slice(6);
       try {
-        const raw = line.replace(/^data: /, '');
-        const obj = JSON.parse(raw);
-        // 出海工作流：命中message事件，推送content
+        const msg = JSON.parse(jsonStr);
         if (workflow_id === WF_OVERSEA) {
-          if(obj.event === "message" && obj.data?.content){
-            res.write("data: " + obj.data.content + "\n\n");
+          if (currentEvent === 'Message' && msg.content) {
+            res.write(`data: ${msg.content}\n\n`);
           }
         }
-        if (obj.type === "workflow_finish") {
-          resultData = obj.data.output;
-        }
-      } catch (e) {
-        // 心跳、不合法行直接跳过
+      } catch (err) {
       }
     }
   }
 });
+
 
 
       cozeResp.data.on('end', async function() {
