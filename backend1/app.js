@@ -257,32 +257,44 @@ if (targetWfId === "7702680885376614438") {
           res.end();
         });
       }else if (targetWfId === WF_COMPLAINT) {
-        let fullText = '';
-        cozeResp.data.on('data', chunk => {
-          const line = chunk.toString('utf8');
-          const lines = line.split('\n');
-          for (const rawLine of lines) {
-            if (!rawLine.startsWith('data:')) continue;
-            const dataStr = rawLine.replace('data:','').trim();
-            if(!dataStr) continue;
-            try {
-              const payload = JSON.parse(dataStr);
-              if (payload.type === 'message' && payload.content) {
-                fullText = payload.content;
-              }
-            } catch(err) {}
-          }
-        });
-        cozeResp.data.on('end', () => {
-          res.write(`data:${fullText}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
-        cozeResp.data.on('error', err => {
-          console.log("【诉状流报错】", err.message);
-          res.end();
-        });
+  let fullText = '';
+  let currentEvent = "";
+  cozeResp.data.on('data', chunk => {
+    const rawStr = chunk.toString('utf8');
+    const lines = rawStr.split(/\r?\n/);
+
+    for (const line of lines) {
+      const trimLine = line.trim();
+      if (!trimLine) continue;
+      if (trimLine.startsWith('event: ')) {
+        currentEvent = trimLine.slice(7);
+        continue;
       }
+      if (trimLine.startsWith('data: ')) {
+        try {
+          const payload = JSON.parse(trimLine.slice(6));
+          // 结束节点、message事件取content，就是pleading_text链接
+          if (payload.content) {
+            fullText = payload.content;
+          }
+        } catch(err) {
+          console.log("诉状解析err", err, line);
+        }
+      }
+    }
+  });
+  cozeResp.data.on('end', () => {
+    // 直接把拿到的文件链接推给前端
+    res.write(`data:${fullText}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  });
+  cozeResp.data.on('error', err => {
+    console.log("【诉状流报错】", err.message);
+    res.end();
+  });
+}
+
 else {
         // ===== 合同审查、其他工作流，原有代码原样保留，一字不改 =====
         let resultData = {};
