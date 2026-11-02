@@ -577,11 +577,10 @@ submitBtn.addEventListener('click', function () {
     resultContent.innerHTML = '';
 
     const params = new URLSearchParams();
-    params.append("mode","workflow");
-    params.append("workflow_id","7702680885376614438");
-    params.append("business_type", payload.business_type);
-    params.append("target_region", payload.target_region);
-    params.append("user_query", payload.user_query);
+params.append("mode","workflow");
+params.append("business_type", payload.business_type);
+params.append("target_region", payload.target_region);
+params.append("user_query", payload.user_query);
 
     const url = `${baseUrl}/api/stream?${params.toString()}`;
     evtSource = new EventSource(url);
