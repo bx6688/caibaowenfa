@@ -209,43 +209,45 @@ app.get('/api/stream', async (req, res) => {
 if (targetWfId === "7702680885376614438") {
   cozeResp.data.on('data', chunk => {
     const rawStr = chunk.toString('utf8');
-    console.log("【Coze原始流】", rawStr);
-    const lines = rawStr.split('\n');
+    const lines = rawStr.split(/\r?\n/);
     let currentEvent = "";
+
     for (const line of lines) {
       const trimLine = line.trim();
       if (!trimLine) continue;
+
       if (trimLine.startsWith('event: ')) {
         currentEvent = trimLine.slice(7);
         continue;
       }
+
       if (trimLine.startsWith('data: ')) {
         try {
           const payload = JSON.parse(trimLine.slice(6));
-          // 跳过PING心跳
+          // 跳过PING心跳包
           if (currentEvent === 'PING') continue;
-          // Message 和 End 两种包都处理
-          if (currentEvent === 'Message' || payload.node_type === "End") {
-            let innerStr = payload.data?.content;
-            if (!innerStr) continue;
-            // ✅ 关键：二次解析，解开套壳JSON
-            try {
-              const innerJson = JSON.parse(innerStr);
-              const realText = innerJson.content;
-              if (realText && realText !== "") {
-                res.write(`data: ${realText}\n\n`);
-              }
-            } catch (e) {
-              // 如果不是嵌套json，直接原样输出兜底
-              res.write(`data: ${innerStr}\n\n`);
-            }
-          }
-        } catch (errParse) {
-          console.log("解析异常", errParse);
+
+          // 取值：顶层content（和日志结构完全匹配）
+          const innerStr = payload.content;
+          if (!innerStr) continue;
+
+          // 二次解析解开嵌套JSON
+          const innerJson = JSON.parse(innerStr);
+          let text = innerJson.content;
+
+          // 核心修复：把正文里的换行转义，避免破坏SSE帧结构
+          text = text.replace(/\n/g, '\\n');
+
+          // 标准SSE输出，严格双换行结尾
+          res.write(`data: ${text}\n\n`);
+
+        } catch (err) {
+          console.error('解析异常：', err);
         }
       }
     }
   });
+
         cozeResp.data.on('end', () => {
           res.write(`data: [DONE]\n\n`);
           res.end();
