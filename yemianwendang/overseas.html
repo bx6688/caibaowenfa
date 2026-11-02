@@ -594,14 +594,30 @@ evtSource.onmessage = (e) => {
         showResult();
         return;
     }
-    // 把后端转义的 \\n 还原成真实换行
+    // 还原后端转义的换行，这一步和之前保持一致，保证数据读取正常
     const realText = e.data.replace(/\\n/g, '\n');
-    const span = document.createElement('span');
-    span.textContent = realText;
-    resultContent.appendChild(span);
+
+    // 只做文本渲染转换，不修改原始数据流
+    let htmlText = realText.replace(
+        /(https?:\/\/[^\s\)]+)/g,
+        '<a href="$1" target="_blank" style="color:#1a56db;text-decoration:underline;">$1</a>'
+    );
+
+    htmlText = htmlText.replace(/^### (.*)$/gm, '<h3>$1</h3>');
+    htmlText = htmlText.replace(/^## (.*)$/gm, '<h2>$1</h2>');
+    htmlText = htmlText.replace(/^# (.*)$/gm, '<h1>$1</h1>');
+    htmlText = htmlText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    htmlText = htmlText.replace(/^- (.*)$/gm, '<li>$1</li>');
+    htmlText = htmlText.replace(/\n\n/g, '<br><br>');
+
+    const div = document.createElement('div');
+    div.innerHTML = htmlText;
+    resultContent.appendChild(div);
+
     const container = resultContent.parentElement;
     container.scrollTop = container.scrollHeight;
 };
+
 
 
         evtSource.onerror = () => {
