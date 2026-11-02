@@ -576,6 +576,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if(step5Prev) step5Prev.addEventListener('click', ()=>updateSteps(4));
 
+    // 【下载按钮 放在外面，不属于生成按钮点击事件】
+    if(downloadBtn){
+        downloadBtn.addEventListener('click', function(){
+            alert('下载Word文档功能待实现');
+        });
+    }
+
+    // 【预览函数 放在外层】
+    function generatePreview() {
+        const previewContent = document.getElementById('preview-content');
+        if (!previewContent) return;
+        const plaintiffName = document.getElementById('plaintiff-name').value || '[原告姓名]';
+        const plaintiffAddress = document.getElementById('plaintiff-address').value || '[原告地址]';
+        const defendantName = document.getElementById('defendant-name').value || '[被告姓名]';
+        const defendantAddress = document.getElementById('defendant-address').value || '[被告地址]';
+        const caseFacts = document.getElementById('case-facts').value || '[案件事实与理由详细描述]';
+        const litigationRequests = document.getElementById('litigation-requests').value || '[诉讼请求]';
+        let requestsHtml = '';
+        if (litigationRequests) {
+            const requests = litigationRequests.split('\n').filter(r => r.trim() !== '');
+            requests.forEach((request, index) => {
+                requestsHtml += `<p>${index + 1}. ${request}</p>`;
+            });
+        } else {
+            requestsHtml = '<p>1. [诉讼请求1]</p><p>2. [诉讼请求2]</p>';
+        }
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth() + 1;
+        const day = today.getDate();
+        const dateStr = `${year}年${month}月${day}日`;
+        previewContent.innerHTML = `
+                    <p><strong>原告：</strong>${plaintiffName}，${plaintiffAddress}</p>
+                    <p><strong>被告：</strong>${defendantName}，${defendantAddress}</p>
+                    <p><strong>诉讼请求：</strong></p>
+                    ${requestsHtml}
+                    <p><strong>事实与理由：</strong></p>
+                    <p>${caseFacts}</p>
+                    <p>此致</p>
+                    <p>人民法院</p>
+                    <p style="text-align: right;">具状人：${plaintiffName}</p>
+                    <p style="text-align: right;">${dateStr}</p>
+                `;
+    }
+
+    // 【生成诉状按钮】
     if (generateBtn) {
         generateBtn.addEventListener('click', function() {
             if(evtSource) evtSource.close();
@@ -618,49 +664,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         </a>
                     </div>
                  `;
-              };
-    if(downloadBtn){
-        downloadBtn.addEventListener('click', function(){
-            alert('下载Word文档功能待实现');
+            };
         });
     }
 
-    function generatePreview() {
-        const previewContent = document.getElementById('preview-content');
-        if (!previewContent) return;
-        const plaintiffName = document.getElementById('plaintiff-name').value || '[原告姓名]';
-        const plaintiffAddress = document.getElementById('plaintiff-address').value || '[原告地址]';
-        const defendantName = document.getElementById('defendant-name').value || '[被告姓名]';
-        const defendantAddress = document.getElementById('defendant-address').value || '[被告地址]';
-        const caseFacts = document.getElementById('case-facts').value || '[案件事实与理由详细描述]';
-        const litigationRequests = document.getElementById('litigation-requests').value || '[诉讼请求]';
-        let requestsHtml = '';
-        if (litigationRequests) {
-            const requests = litigationRequests.split('\n').filter(r => r.trim() !== '');
-            requests.forEach((request, index) => {
-                requestsHtml += `<p>${index + 1}. ${request}</p>`;
-            });
-        } else {
-            requestsHtml = '<p>1. [诉讼请求1]</p><p>2. [诉讼请求2]</p>';
-        }
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth() + 1;
-        const day = today.getDate();
-        const dateStr = `${year}年${month}月${day}日`;
-        previewContent.innerHTML = `
-                    <p><strong>原告：</strong>${plaintiffName}，${plaintiffAddress}</p>
-                    <p><strong>被告：</strong>${defendantName}，${defendantAddress}</p>
-                    <p><strong>诉讼请求：</strong></p>
-                    ${requestsHtml}
-                    <p><strong>事实与理由：</strong></p>
-                    <p>${caseFacts}</p>
-                    <p>此致</p>
-                    <p>人民法院</p>
-                    <p style="text-align: right;">具状人：${plaintiffName}</p>
-                    <p style="text-align: right;">${dateStr}</p>
-                `;
-    }
 });
 </script>
 </body>
