@@ -604,20 +604,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const url = `${baseUrl}/api/stream?${params.toString()}`;
             evtSource = new EventSource(url);
 
-            evtSource.onmessage = (e) => {
-                if(e.data === "PING") return;
-                if(e.data === "[DONE]"){
-                    evtSource.close();
-                    return;
-                }
-                previewContent.innerHTML += e.data;
-            };
-            evtSource.onerror = ()=>{
-                evtSource.close();
-                alert("生成失败，请重试");
-            };
-        });
+evtSource.onmessage = function(e) {
+  // 你原来这里旧的代码全部删掉，直接替换成下面这段
+    if(e.data === "PING") return;
+    if(e.data === "[DONE]"){
+        evtSource.close();
+        return;
     }
+    previewContent.innerHTML = `
+        <div style="padding:20px;text-align:center;">
+            <p style="font-size:16px;margin-bottom:16px;">✅ 诉状生成成功！</p>
+            <a href="${e.data}" target="_blank" style="display:inline-block;padding:12px 28px;background:#1a56db;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
+                📄 点击下载民事起诉状（docx）
+            </a>
+        </div>
+    `;
+};
 
     if(downloadBtn){
         downloadBtn.addEventListener('click', function(){
