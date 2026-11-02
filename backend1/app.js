@@ -176,12 +176,17 @@ app.get('/api/stream', async (req, res) => {
     }
   } else if (mode === 'workflow') {
     try {
-      let sendParams = {};
-      if (workflow_id === WF_CONTRACT) {
-        sendParams.input = params.file_id;
-      } else {
-        sendParams = params;
+      const { workflow_id, ...params } = req.query;
+      let targetWfId = workflow_id;
+      let sendParams = { ...params };
+
+      // 匹配出海ID，和你的curl一致
+      if (targetWfId === "7702680885376614438") {
+        targetWfId = "7702680885376614438";
+      } else if (workflow_id === WF_CONTRACT) {
+        sendParams = { input: params.file_id };
       }
+
       const cozeResp = await axios({
         method: "POST",
         url: COZE_BASE + "/v1/workflow/stream_run",
@@ -190,63 +195,57 @@ app.get('/api/stream', async (req, res) => {
           "Content-Type": "application/json"
         },
         data: {
-          workflow_id: workflow_id,
+          workflow_id: targetWfId,
           parameters: sendParams
         },
         responseType: "stream"
       });
       let resultData = {};
 
-cozeResp.data.on('data', (chunk) => {
-  const rawText = chunk.toString('utf8');
-  // 打印原始流，去Render日志里看真实返回
-  console.log('[OVERSEA_RAW]', rawText);
-  const lines = rawText.split(/\r?\n/);
-  let currentEvent = '';
-  for (const line of lines) {
-    if (!line.trim()) continue;
-    if (line.startsWith('event: ')) {
-      currentEvent = line.replace('event: ','').trim();
-      console.log('[OVERSEA_EVENT]', currentEvent);
-      continue;
-    }
-    if (line.startsWith('data: ')) {
-      const jsonStr = line.slice(6);
-      try {
-        const msg = JSON.parse(jsonStr);
-        console.log('[OVERSEA_DATA]', msg);
-        if (workflow_id === WF_OVERSEA) {
-          // 兼容两种：小写message / 大写Message
-          if ((currentEvent === 'Message' || currentEvent === 'message') && msg.content) {
-            res.write(`data: ${msg.content}\n\n`);
+      cozeResp.data.on('data', (chunk) => {
+        const rawText = chunk.toString('utf8');
+        console.log('[OVERSEA_RAW]', rawText);
+        const lines = rawText.split(/\n/);
+        let currentEvent = '';
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          if (line.startsWith('event: ')) {
+            currentEvent = line.replace('event: ','').trim();
+            console.log('[OVERSEA_EVENT]', currentEvent);
+            continue;
+          }
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6);
+            try {
+              const msg = JSON.parse(jsonStr);
+              console.log('[OVERSEA_DATA]', msg);
+              if (targetWfId === "7702680885376614438") {
+                if ((currentEvent === 'Message' || currentEvent === 'message') && msg.content) {
+                  res.write(`data: ${msg.content}\n\n`);
+                }
+              }
+            } catch (err) {
+              console.log('[OVERSEA_PARSE_ERR]', err.message, jsonStr);
+            }
           }
         }
-      } catch (err) {
-        console.log('[OVERSEA_PARSE_ERR]', err.message, jsonStr);
-      }
-    }
-  }
-});
-
-
+      });
 
       cozeResp.data.on('end', async function() {
-        // 出海已经实时推流完成，直接结束
-        if (workflow_id === WF_OVERSEA) {
+        if (targetWfId === "7702680885376614438") {
           res.write("data: [DONE]\n\n");
           res.end();
           return;
         }
-
-        // 原有逻辑，一点不动
-        if (workflow_id === WF_CASE_SEARCH) {
+        // 原有逻辑原样保留
+        if (targetWfId === WF_CASE_SEARCH) {
           res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
           res.write("data: [DONE]\n\n");
           res.end();
         } else {
           let outputText = "";
-          if (workflow_id === WF_COMPLAINT) outputText = resultData?.pleading_text;
-          if (workflow_id === WF_CONTRACT) outputText = resultData?.output;
+          if (targetWfId === WF_COMPLAINT) outputText = resultData?.pleading_text;
+          if (targetWfId === WF_CONTRACT) outputText = resultData?.output;
           outputText = typeof outputText === "string" ? outputText : "";
           await streamText(res, outputText);
         }
@@ -261,6 +260,7 @@ cozeResp.data.on('data', (chunk) => {
       res.end();
     }
   }
+
  else {
     res.write(`data: 错误：mode参数非法\n\n`);
     res.end();
