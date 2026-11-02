@@ -174,14 +174,22 @@ app.get('/api/stream', async (req, res) => {
       res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
       res.end();
     }
-  } else if (mode === 'workflow') {
+} else if (mode === 'workflow') {
     try {
-      const { workflow_id, ...params } = req.query;
+      const { workflow_id, business_type, target_region, user_query, ...rest } = req.query;
       const targetWfId = workflow_id;
-      let sendParams = { ...params };
+      let sendParams = { ...rest };
 
-      if (targetWfId === WF_CONTRACT) {
-        sendParams = { input: params.file_id };
+      // 出海工作流参数，和开始节点变量一一对应
+      if (targetWfId === "7702680885376614438") {
+        sendParams = {
+          business_type,
+          target_region,
+          ...(user_query ? { user_query } : {})
+        };
+        console.log("【出海入参】", sendParams);
+      } else if (targetWfId === WF_CONTRACT) {
+        sendParams = { input: rest.input };
       }
 
       const cozeResp = await axios({
@@ -199,22 +207,23 @@ app.get('/api/stream', async (req, res) => {
       });
 
       if (targetWfId === "7702680885376614438") {
-        // ===== 出海，和合同审查解析逻辑完全对齐 =====
         cozeResp.data.on('data', chunk => {
-          const str = chunk.toString('utf8');
-          const lines = str.split('\n');
-          for(const line of lines){
-            if(!line.trim()) continue;
-            if(line.startsWith('data: ')){
-              try{
-                const msg = JSON.parse(line.slice(6));
-                // 重点：结束节点返回变量content，在 msg.data.content
-                const text = msg.data?.content;
-                if(text !== undefined){
-                  res.write(`data: ${text}\n\n`);
+          const rawStr = chunk.toString('utf8');
+          console.log("【Coze原始流】", rawStr);
+          const lines = rawStr.split('\n');
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            if (line.startsWith('data: ')) {
+              try {
+                const payload = JSON.parse(line.slice(6));
+                // ✅ Coze自定义结束变量固定路径 data.outputs.content
+                const outText = payload.data?.outputs?.content;
+                if (outText) {
+                  res.write(`data: ${outText}\n\n`);
                 }
-              }catch(e){
-                continue;
+              } catch (errParse) {
+                // 心跳包、结束包直接透传，不中断
+                res.write(line + '\n\n');
               }
             }
           }
@@ -224,7 +233,7 @@ app.get('/api/stream', async (req, res) => {
           res.end();
         });
         cozeResp.data.on('error', err => {
-          console.log("出海流错误", err);
+          console.log("【出海流报错】", err.message);
           res.end();
         });
       } else {
