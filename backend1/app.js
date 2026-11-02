@@ -186,9 +186,9 @@ app.get('/api/stream', async (req, res) => {
 
       const cozeResp = await axios({
         method: "POST",
-        url: COZE_BASE + "/v1/workflow/stream_run",
+        url: "https://api.coze.cn/v1/workflow/stream_run",
         headers: {
-          "Authorization": "Bearer " + COZE_PAT,
+          Authorization: `Bearer ${COZE_PAT}`,
           "Content-Type": "application/json"
         },
         data: {
@@ -197,57 +197,72 @@ app.get('/api/stream', async (req, res) => {
         },
         responseType: "stream"
       });
-      let resultData = {};
 
-      // 直接把Coze返回的SSE行原样转发给前端（最简单稳定，和curl行为一致）
-      cozeResp.data.on('data', (chunk) => {
-        const str = chunk.toString('utf8');
-        const lines = str.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          // 出海：直接透传原始行，不做解析
-          if(targetWfId === "7702680885376614438"){
-            res.write(line + '\n\n');
-          }else{
-            // 其他工作流保留原有解析逻辑
+      if (targetWfId === "7702680885376614438") {
+        // ===== 出海专属：解析取出 content 变量输出 =====
+        cozeResp.data.on('data', chunk => {
+          const str = chunk.toString('utf8');
+          const lines = str.split('\n');
+          for(const line of lines){
+            if(!line.trim()) continue;
             if(line.startsWith('data: ')){
               try{
-                const d = JSON.parse(line.slice(6));
-                resultData = d;
-              }catch(e){}
+                const msg = JSON.parse(line.slice(6));
+                // 取结束节点输出的 content
+                const text = msg.content;
+                if(text !== undefined){
+                  res.write(`data: ${text}\n\n`);
+                }
+              }catch(e){
+                // 解析失败直接跳过这条消息，不中断流
+              }
             }
           }
-        }
-      });
-
-      cozeResp.data.on('end', async function() {
-        if (targetWfId === "7702680885376614438") {
-          res.write("data: [DONE]\n\n");
+        });
+        cozeResp.data.on('end', () => {
+          res.write(`data: [DONE]\n\n`);
           res.end();
-          return;
-        }
-        // ========= 原有逻辑，一字不改 =========
-        if (targetWfId === WF_CASE_SEARCH) {
-          res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
-          res.write("data: [DONE]\n\n");
+        });
+        cozeResp.data.on('error', err => {
+          console.log("出海流错误", err);
           res.end();
-        } else {
-          let outputText = "";
-          if (targetWfId === WF_COMPLAINT) outputText = resultData?.pleading_text;
-          if (targetWfId === WF_CONTRACT) outputText = resultData?.output;
-          outputText = typeof outputText === "string" ? outputText : "";
-          await streamText(res, outputText);
-        }
-      });
-
-      cozeResp.data.on('error', function(e) {
-        console.log('Coze流错误', e);
-        res.write("data: 流异常：" + e.message + "\n\n");
-        res.end();
-      });
+        });
+      } else {
+        // ===== 其他工作流（合同审查等），完全保留原有逻辑 =====
+        let resultData = {};
+        cozeResp.data.on('data', (chunk) => {
+          const str = chunk.toString('utf8');
+          const lines = str.split('\n');
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            if (line.startsWith('data: ')) {
+              try {
+                resultData = JSON.parse(line.slice(6));
+              } catch (e) {}
+            }
+          }
+        });
+        cozeResp.data.on('end', async function () {
+          if (targetWfId === WF_CASE_SEARCH) {
+            res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
+            res.write("data: [DONE]\n\n");
+            res.end();
+          } else {
+            let outputText = "";
+            if (targetWfId === WF_COMPLAINT) outputText = resultData?.pleading_text;
+            if (targetWfId === WF_CONTRACT) outputText = resultData?.output;
+            outputText = typeof outputText === "string" ? outputText : "";
+            await streamText(res, outputText);
+          }
+        });
+        cozeResp.data.on('error', function (e) {
+          console.log('其他工作流流错误', e);
+          res.end();
+        });
+      }
     } catch (err) {
       console.log('axios请求报错：', err?.response?.data || err.message);
-      res.write("data: 请求失败：" + JSON.stringify(err?.response?.data || err.message) + "\n\n");
+      res.write(`data: 请求异常 ${JSON.stringify(err?.response?.data || err.message)}\n\n`);
       res.end();
     }
   }
