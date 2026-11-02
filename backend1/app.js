@@ -197,32 +197,36 @@ app.get('/api/stream', async (req, res) => {
       });
       let resultData = {};
 
-      cozeResp.data.on('data', function(chunk) {
-        const str = chunk.toString();
-        const lines = str.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          if (!line.trim()) {
-            continue;
+cozeResp.data.on('data', function(chunk) {
+  const str = chunk.toString();
+  const lines = str.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line.trim()) continue;
+    // 区分SSE原生的 event: 和 data: 行
+    if(line.startsWith('event: ')){
+      continue;
+    }
+    if(line.startsWith('data: ')){
+      try {
+        const raw = line.replace(/^data: /, '');
+        const obj = JSON.parse(raw);
+        // 出海工作流：命中message事件，推送content
+        if (workflow_id === WF_OVERSEA) {
+          if(obj.event === "message" && obj.data?.content){
+            res.write("data: " + obj.data.content + "\n\n");
           }
-          try {
-            const raw = line.replace(/^data: /, '');
-            const obj = JSON.parse(raw);
-// ========== 企业出海：监听 message 事件（适配你开启流式输出的结束节点） ==========
-      if (workflow_id === WF_OVERSEA) {
-        if(obj.event === "message"){
-          const content = obj.data?.content || "";
-          res.write("data: " + content + "\n\n");
         }
+        if (obj.type === "workflow_finish") {
+          resultData = obj.data.output;
+        }
+      } catch (e) {
+        // 心跳、不合法行直接跳过
       }
-      if (obj.type === "workflow_finish") {
-        resultData = obj.data.output;
-      }
-    } catch (e) {
-      // 忽略解析异常行（心跳、空行）
     }
   }
 });
+
 
       cozeResp.data.on('end', async function() {
         // 出海已经实时推流完成，直接结束
