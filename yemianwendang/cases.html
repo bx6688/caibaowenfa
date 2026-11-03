@@ -626,11 +626,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             html += `
 <div class="case-card">
-    <h4 class="case-title">${title}</h4>
+    <h4 class="case-title">${title} <span style="color:red;font-size:10px">[v2]</span></h4>
     <div class="case-meta">
-        <span class="case-type">${type}</span>
-        <span class="case-court">${court}</span>
-        <span class="case-date">${date}</span>
+        <span class="case-type">${type || '无类型'}</span>
+        <span class="case-court">${court || '无法院'}</span>
+        <span class="case-date">${date || '无年份'}</span>
     </div>
     <p class="case-content">${content}</p>
     <button class="view-detail-btn" data-item='${JSON.stringify(item).replaceAll("'","\\'")}'>查看详情</button>
