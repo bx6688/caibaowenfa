@@ -302,7 +302,8 @@ app.get('/api/stream', async (req, res) => {
             if (trimLine.startsWith('data: ')) {
               try {
                 const payload = JSON.parse(trimLine.slice(6));
-                if (payload.content) {
+                // 【重点修复】只有content不为空，才赋值，空字符串不覆盖之前的正确结果！
+                if (payload.content && payload.content.trim() !== '') {
                   fullPayload = payload.content;
                 }
               } catch (err) {
@@ -315,7 +316,8 @@ app.get('/api/stream', async (req, res) => {
         cozeResp.data.on('end', () => {
           let sendObj;
           try {
-            const caseData = fullPayload ? JSON.parse(fullPayload) : null;
+            // fullPayload 是 coze输出节点返回的json字符串：{"final_list":[...]}
+            const caseData = fullPayload ? JSON.parse(fullPayload) : { final_list: [] };
             sendObj = {
               type: "case",
               data: caseData
@@ -324,7 +326,7 @@ app.get('/api/stream', async (req, res) => {
             console.error("案例结果解析失败", parseErr, fullPayload);
             sendObj = {
               type: "case",
-              data: null,
+              data: { final_list: [] },
               error: "返回数据解析失败"
             };
           }
@@ -338,7 +340,7 @@ app.get('/api/stream', async (req, res) => {
           console.log("【案例检索流报错】", err.message);
           const sendObj = {
             type: "case",
-            data: null,
+            data: { final_list: [] },
             error: err.message
           };
           const output = JSON.stringify(sendObj);
@@ -346,6 +348,8 @@ app.get('/api/stream', async (req, res) => {
           res.write('data:[DONE]\n\n');
           res.end();
         });
+      }
+
       } else {
         let resultData = {};
         const cozeResp = await axios({
