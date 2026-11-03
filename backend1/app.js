@@ -63,7 +63,7 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
 
     const ret = cozeResp.data;
     if (ret.code !== 0 || !ret.data?.id) {
-      return res.status(500).json({ ok: false, msg: ret.msg || "Coze 文件上传失败" });
+      return res.status(500).json({ ok: false, msg: ret.msg || "Coze文件上传失败" });
     }
 
     return res.json({
@@ -302,7 +302,7 @@ app.get('/api/stream', async (req, res) => {
             if (trimLine.startsWith('data: ')) {
               try {
                 const payload = JSON.parse(trimLine.slice(6));
-                // 【重点修复】只有content不为空，才赋值，空字符串不覆盖之前的正确结果！
+                // 核心修复：空content不覆盖正确结果
                 if (payload.content && payload.content.trim() !== '') {
                   fullPayload = payload.content;
                 }
@@ -316,7 +316,6 @@ app.get('/api/stream', async (req, res) => {
         cozeResp.data.on('end', () => {
           let sendObj;
           try {
-            // fullPayload 是 coze输出节点返回的json字符串：{"final_list":[...]}
             const caseData = fullPayload ? JSON.parse(fullPayload) : { final_list: [] };
             sendObj = {
               type: "case",
@@ -348,8 +347,6 @@ app.get('/api/stream', async (req, res) => {
           res.write('data:[DONE]\n\n');
           res.end();
         });
-      }
-
       } else {
         let resultData = {};
         const cozeResp = await axios({
@@ -426,12 +423,12 @@ app.post('/api/workflow/contract', async (req, res) => {
         }
       }
     );
-    console.log("Coze 返回成功：", cozeRes.data);
+    console.log("Coze 合同接口返回成功");
     res.json(cozeRes.data);
   } catch (err) {
-    console.log('==== Coze 接口原始报错 ====');
-    console.log("err.response?.status:", err.response?.status);
-    console.log("err.response?.data:", err.response?.data);
+    console.log('==== 合同接口原始报错 ====');
+    console.log("status:", err.response?.status);
+    console.log("data:", err.response?.data);
     res.status(500).json({
       error: err.response?.data ?? err.message
     });
@@ -440,5 +437,5 @@ app.post('/api/workflow/contract', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("服务启动，端口：", PORT);
+  console.log("服务启动成功，端口：", PORT);
 });
