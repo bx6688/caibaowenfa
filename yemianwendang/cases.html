@@ -556,7 +556,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let allCases = [];
     const pageSize = 10;
     let searchParamsCache = null;
-    let isQuickCardTrigger = false;
 
     const searchBtn = document.querySelector('.search-btn');
     const caseSearchInput = document.getElementById('case-search-input');
@@ -571,88 +570,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadMoreWrap = document.getElementById('load-more-wrap');
     const loadMoreBtn = document.getElementById('load-more-btn');
 
-    document.querySelectorAll('.type-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const typeValue = this.getAttribute('data-type');
-            caseTypeSelect.value = typeValue;
-            isQuickCardTrigger = true;
-            performSearch();
-        });
-    });
-
-    if (loadMoreBtn) {
-        loadMoreBtn.onclick = function(){
-            currentPage++;
-            const start = (currentPage - 1) * pageSize;
-            const end = start + pageSize;
-            const pageData = allCases.slice(start, end);
-            if (pageData.length > 0) {
-                renderList(pageData, true);
-            }
-            const currentShown = document.querySelectorAll('.case-card').length;
-            if (loadMoreWrap) {
-                if (currentShown >= allCases.length || pageData.length < pageSize) {
-                    loadMoreWrap.style.display = "none";
-                } else {
-                    loadMoreWrap.style.display = "block";
-                }
-            }
-        }
+    function extractTitle(rawText) {
+        if (!rawText) return "未知案例";
+        const m = rawText.match(/案件名称[:：]\s*([^\n]+)/);
+        if (m) return m[1].trim();
+        return rawText.replace(/\n/g, " ").slice(0, 50);
     }
 
-    function renderList(list, isAppend){
-        if (!isAppend) {
-            if(caseResults) caseResults.innerHTML = "";
-        }
-        console.log("【renderList 收到】", list);
+    function renderList(list, isAppend) {
+        if (!isAppend && caseResults) caseResults.innerHTML = "";
+
         let html = "";
-        list.forEach(item=>{
-            console.log("【单条案例 item】", item);
-            const rawText = item.output || item.content || item.text || "";
-            let title = "未知案例";
-            if (rawText) {
-                const nameMatch = rawText.match(/案件名称[:：]\s*([^\n]+)/);
-                if (nameMatch) {
-                    title = nameMatch[1].trim().slice(0, 40);
-                } else {
-                    title = rawText.replace(/\n/g, " ").slice(0, 50);
-                }
-            }
-            const type = item.extractCaseType || "";
-            const court = item.extractCourt || "";
-            const date = item.extractYear ? String(item.extractYear) : "";
+        for (const item of list) {
+            const rawText = item.output || "";
+            const title = extractTitle(rawText);
+            const type = item.extractCaseType || "无类型";
+            const court = item.extractCourt || "无法院";
+            const year = item.extractYear ? String(item.extractYear) : "无年份";
             const content = rawText.replace(/\n/g, "<br>");
 
-            html += `
-<div class="case-card">
-    <h4 class="case-title">${title} <span style="color:red;font-size:10px">[v2]</span></h4>
-    <div class="case-meta">
-        <span class="case-type">${type || '无类型'}</span>
-        <span class="case-court">${court || '无法院'}</span>
-        <span class="case-date">${date || '无年份'}</span>
-    </div>
-    <p class="case-content">${content}</p>
-    <button class="view-detail-btn" data-item='${JSON.stringify(item).replaceAll("'","\\'")}'>查看详情</button>
-</div>`;
-        });
-        if(caseResults) {
-            if (isAppend) {
-                caseResults.innerHTML += html;
-            } else {
-                caseResults.innerHTML = html;
-            }
+            html += '<div class="case-card">'
+                + '<h4 class="case-title">' + title + '</h4>'
+                + '<div class="case-meta">'
+                + '<span class="case-type">' + type + '</span>'
+                + '<span class="case-court">' + court + '</span>'
+                + '<span class="case-date">' + year + '</span>'
+                + '</div>'
+                + '<p class="case-content">' + content + '</p>'
+                + '<button class="view-detail-btn" data-raw=\'' + JSON.stringify(item).replace(/'/g, "&#39;").replace(/"/g, "&quot;") + '\'>查看详情</button>'
+                + '</div>';
         }
 
-        document.querySelectorAll('.view-detail-btn').forEach(btn=>{
-            btn.onclick=function(){
-                const item = JSON.parse(this.dataset.item);
-                const rawText = item.output || item.content || item.text || "";
-                let title = "案例详情";
-                if (rawText) {
-                    const nameMatch = rawText.match(/案件名称[:：]\s*([^\n]+)/);
-                    title = nameMatch ? nameMatch[1].trim() : rawText.slice(0, 40);
-                }
-                document.getElementById('detail-title').innerText = title;
+        if (!isAppend) {
+            caseResults.innerHTML = html;
+        } else {
+            caseResults.innerHTML += html;
+        }
+
+        caseResults.querySelectorAll('.view-detail-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                let item = null;
+                try { item = JSON.parse(this.getAttribute('data-raw').replace(/&quot;/g, '"').replace(/&#39;/g, "'")); } catch(e) { console.error(e); return; }
+                const rawText = item.output || "";
+                document.getElementById('detail-title').innerText = extractTitle(rawText);
                 document.getElementById('detail-type').innerText = item.extractCaseType || "";
                 document.getElementById('detail-court').innerText = item.extractCourt || "";
                 document.getElementById('detail-date').innerText = item.extractYear ? String(item.extractYear) : "";
@@ -660,78 +620,83 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('detail-judgment').innerText = "";
                 document.getElementById('detail-key-points').innerText = "";
                 document.getElementById('detail-legal-basis').innerText = "";
-                if(caseDetailModal) caseDetailModal.style.display='block';
-            }
-        })
+                caseDetailModal.style.display = 'block';
+            });
+        });
     }
 
-    async function fetchPageData(){
-        const params = searchParamsCache;
-        if (!params) {
-            if(caseResults) caseResults.innerHTML = `<div class="no-results">搜索参数异常</div>`;
-            return;
-        }
-        params.set("page", String(currentPage));
-        const url = `${baseUrl}/api/stream?${params.toString()}`;
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function() {
+            currentPage++;
+            const start = (currentPage - 1) * pageSize;
+            const pageData = allCases.slice(start, start + pageSize);
+            if (pageData.length > 0) {
+                renderList(pageData, true);
+            }
+            const shown = caseResults.querySelectorAll('.case-card').length;
+            if (shown >= allCases.length || pageData.length < pageSize) {
+                loadMoreWrap.style.display = "none";
+            }
+        });
+    }
+
+    async function fetchData() {
+        if (!searchParamsCache) return;
+        const url = baseUrl + "/api/stream?" + searchParamsCache.toString();
         console.log("【请求 URL】", url);
 
         try {
             const resp = await fetch(url);
             const text = await resp.text();
-            console.log("【fetch 原始响应】", text.slice(0, 500));
+            console.log("【原始响应前300字】", text.slice(0, 300));
 
-            // 解析 SSE 格式
+            let finalList = [];
+            let total = 0;
+
             const lines = text.split('\n');
             for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('data:')) {
-                    const data = trimmed.slice(5).trim();
-                    if (data === '[DONE]' || data === 'PING') continue;
-                    try {
-                        const resObj = JSON.parse(data);
-                        console.log("【案例返回解析后】", resObj);
-                        if (resObj.type === "case") {
-                            const resultData = resObj.data;
-                            const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
-                            const total = Number(resultData.total || caseList.length);
-
-                            allCases = caseList;
-                            if(resultsNumber) resultsNumber.textContent = total;
-
-                            const start = 0;
-                            const firstPage = allCases.slice(start, pageSize);
-
-                            if (firstPage.length > 0) {
-                                renderList(firstPage, false);
-                                if (loadMoreWrap) {
-                                    loadMoreWrap.style.display = allCases.length > pageSize ? "block" : "none";
-                                }
-                            } else {
-                                if(caseResults) caseResults.innerHTML = `<div class="no-results">${resultData.tip_msg || '没有找到匹配的案例'}</div>`;
-                            }
-                        }
-                    } catch (e) {
-                        console.warn("解析 SSE 行失败", e, data);
+                const t = line.trim();
+                if (!t.startsWith('data:')) continue;
+                const payload = t.slice(5).trim();
+                if (!payload || payload === '[DONE]' || payload === 'PING') continue;
+                try {
+                    const obj = JSON.parse(payload);
+                    console.log("【解析到一条】", obj.type, obj.data ? ("条数=" + obj.data.final_list?.length) : "");
+                    if (obj.type === "case" && obj.data) {
+                        finalList = Array.isArray(obj.data.final_list) ? obj.data.final_list : [];
+                        total = Number(obj.data.total || finalList.length);
                     }
+                } catch(e) {
+                    console.warn("跳过非JSON行:", payload.slice(0, 80));
                 }
             }
+
+            allCases = finalList;
+            if (resultsNumber) resultsNumber.textContent = total;
+
+            if (finalList.length > 0) {
+                renderList(finalList.slice(0, pageSize), false);
+                loadMoreWrap.style.display = finalList.length > pageSize ? "block" : "none";
+            } else {
+                if (caseResults) caseResults.innerHTML = '<div class="no-results">没有找到匹配的案例</div>';
+                loadMoreWrap.style.display = "none";
+            }
         } catch (err) {
-            console.error("【fetch 请求失败】", err);
-            if(caseResults) caseResults.innerHTML = `<div class="no-results">请求出错: ${err.message}</div>`;
+            console.error("【fetch 失败】", err);
+            if (caseResults) caseResults.innerHTML = '<div class="no-results">请求失败: ' + err.message + '</div>';
         }
     }
 
-    async function performSearch() {
+    function performSearch() {
         currentPage = 1;
         allCases = [];
 
-        const keyword = caseSearchInput ? caseSearchInput.value.trim() : "";
-        const raw_case_type = caseTypeSelect ? caseTypeSelect.value : "all";
-        const court = caseCourtInput ? caseCourtInput.value.trim() : "";
-        const raw_year = caseYearSelect ? caseYearSelect.value : "all";
-        const sort_type = sortBy ? sortBy.value : "relevance";
+        const keyword = caseSearchInput.value.trim();
+        const raw_case_type = caseTypeSelect.value;
+        const court = caseCourtInput.value.trim();
+        const raw_year = caseYearSelect.value;
+        const sort_type = sortBy.value;
 
-        // 映射：前端英文 value → Coze 中文 case_type
         const typeMap = {
             "all": "全部类型",
             "contract": "合同纠纷",
@@ -742,64 +707,51 @@ document.addEventListener('DOMContentLoaded', function() {
             "family": "婚姻家庭"
         };
         const case_type = typeMap[raw_case_type] || "全部类型";
-        // Coze year 是 int：全部年份传数字 0，否则转数字
         const year = raw_year === 'all' ? 0 : Number(raw_year);
 
-        // ===== 校验规则：只有【不是快捷卡片点击】的时候，才执行校验 =====
-        if (!isQuickCardTrigger) {
-            const isAllType = case_type === "全部类型";
-            const isAllYear = year === 0;
-            if (isAllType || isAllYear) {
-                if (!keyword && !court) {
-                    alert('【案件类型为全部类型】或【年份范围为全部年份】时，请输入关键词或者填写法律援助中心！');
-                    return;
-                }
-            }
+        if ((case_type === "全部类型" || year === 0) && !keyword && !court) {
+            alert('案件类型或年份为"全部"时，请输入关键词或法律援助中心！');
+            return;
         }
-        // 搜索执行完，清空标记
-        isQuickCardTrigger = false;
 
-        if(caseResults) caseResults.innerHTML = `<div class="no-results">正在 AI 检索案例...</div>`;
-        if(resultsNumber) resultsNumber.textContent = "0";
-        if(loadMoreWrap) loadMoreWrap.style.display = "none";
+        caseResults.innerHTML = '<div class="no-results">正在 AI 检索案例...</div>';
+        resultsNumber.textContent = "0";
+        loadMoreWrap.style.display = "none";
 
-        // 和 Coze 开始节点变量严格对齐
         const params = new URLSearchParams();
-        params.append("mode","workflow");
-        params.append("workflow_id","7702373812499480630");
+        params.append("mode", "workflow");
+        params.append("workflow_id", "7702373812499480630");
         params.append("keyword", keyword);
         params.append("case_type", case_type);
         params.append("court", court);
         params.append("year", String(year));
         params.append("sort_type", sort_type);
-        params.append("search_mode","search");
-        params.append("page","1");
+        params.append("search_mode", "search");
+        params.append("page", "1");
         searchParamsCache = params;
 
-        fetchPageData();
+        fetchData();
     }
 
-    if(searchBtn) searchBtn.addEventListener('click', performSearch);
-    if(caseSearchInput){
-        caseSearchInput.addEventListener('keypress', function(e){
-            if(e.key === 'Enter') performSearch();
+    document.querySelectorAll('.type-card').forEach(card => {
+        card.addEventListener('click', function() {
+            caseTypeSelect.value = this.getAttribute('data-type');
+            performSearch();
         });
-    }
-    if(sortBy) sortBy.addEventListener('change', performSearch);
+    });
 
-    // 弹窗安全绑定
-    if(closeDetail){
-        closeDetail.addEventListener('click', ()=>{
-            if(caseDetailModal) caseDetailModal.style.display = 'none';
-        });
-    }
-    if(caseDetailModal){
-        caseDetailModal.addEventListener('click', function(e){
-            if(e.target === caseDetailModal) {
-                caseDetailModal.style.display = 'none';
-            }
-        });
-    }
+    searchBtn.addEventListener('click', performSearch);
+    caseSearchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') performSearch();
+    });
+    sortBy.addEventListener('change', performSearch);
+
+    closeDetail.addEventListener('click', function() {
+        caseDetailModal.style.display = 'none';
+    });
+    caseDetailModal.addEventListener('click', function(e) {
+        if (e.target === caseDetailModal) caseDetailModal.style.display = 'none';
+    });
 });
 </script>
 </body>
