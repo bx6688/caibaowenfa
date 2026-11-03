@@ -43,39 +43,33 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
       return res.status(400).json({ ok: false, msg: '未接收到上传文件' });
     }
     if (!COZE_PAT) {
-      return res.status(500).json({ ok: false, msg: '服务缺少 COZE_PAT 令牌配置' });
+      return res.status(500).json({ ok: false, msg: '缺少COZE_PAT环境变量' });
     }
 
     const formData = new FormData();
-    const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
-    formData.append('file', blob, req.file.originalname);
+    formData.append('file', req.file.buffer, {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype
+    });
 
-    const cozeResp = await axios.post(
-      `${COZE_BASE}/v1/files/upload`,
-      formData,
-      {
-        headers: {
-          "Authorization": `Bearer ${COZE_PAT}`
-        },
-        timeout: 120000
-      }
-    );
-
-    const ret = cozeResp.data;
-    if (ret.code !== 0 || !ret.data?.id) {
-      return res.status(500).json({ ok: false, msg: ret.msg || "Coze文件上传失败" });
-    }
+    const cozeResp = await axios.post(`${COZE_BASE}/v1/files/upload`, formData, {
+      headers: {
+        Authorization: `Bearer ${COZE_PAT}`,
+        ...formData.getHeaders()
+      },
+      timeout: 120000
+    });
 
     return res.json({
       ok: true,
-      file_id: ret.data.id,
+      file_id: cozeResp.data.data?.id,
       msg: '上传成功'
     });
   } catch (err) {
-    console.error('上传文件异常', err?.response?.data || err.message);
+    console.error('文件上传异常：', err?.response?.data || err.message);
     return res.status(500).json({
       ok: false,
-      msg: err?.response?.data?.msg || err.message
+      msg: err?.response?.data?.msg || '文件上传失败'
     });
   }
 });
@@ -89,89 +83,68 @@ app.get('/api/stream', async (req, res) => {
   const { mode, workflow_id, file_id, ...params } = req.query;
 
   if (mode === 'bot') {
-    const { user_id, msg } = params;
+    const { user_id, prompt } = params;
     try {
-      let realText = msg || "";
-      if (file_id && file_id.trim() !== '' && (!realText || realText.trim() === '')) {
-        realText = "请分析这份上传的文件";
+      let messages = [];
+      messages.push({ role: 'user', content: prompt });
+      if (file_id) {
+        messages = [{
+          role: 'user',
+          content: [
+            { type: 'file', file_id: file_id },
+            { type: 'text', text: prompt }
+          ]
+        }];
       }
-
-      let messagesPayload;
-      if (file_id && file_id.trim() !== '') {
-        messagesPayload = {
-          content: JSON.stringify([
-            { type: "text", text: realText },
-            { type: "file", file_id: file_id }
-          ]),
-          content_type: "object_string",
-          role: "user",
-          type: "question"
-        };
-      } else {
-        messagesPayload = {
-          content: realText,
-          content_type: "text",
-          role: "user",
-          type: "question"
-        };
-      }
-
       const cozeResp = await axios({
-        method: "POST",
+        method: 'POST',
         url: `${COZE_BASE}/v3/chat`,
         headers: {
-          "Authorization": `Bearer ${COZE_PAT}`,
-          "Content-Type": "application/json"
+          Authorization: `Bearer ${COZE_PAT}`,
+          'Content-Type': 'application/json'
         },
         data: {
           bot_id: BOT_CHAT_ID,
           user_id,
           stream: true,
-          additional_messages: [messagesPayload],
-          parameters: {}
+          messages
         },
-        responseType: "stream"
+        responseType: 'stream'
       });
-
-      cozeResp.data.on('data', (chunk) => {
-        const str = chunk.toString();
-        const lines = str.split('\n');
+      cozeResp.data.on('data', chunk => {
+        const chunkStr = chunk.toString('utf8');
+        const lines = chunkStr.split('\n');
         for (const line of lines) {
-          if (!line.trim()) continue;
-          res.write(`${line}\n\n`);
+          if (line.startsWith('data:')) {
+            res.write(`${line}\n\n`);
+          }
         }
       });
-
       cozeResp.data.on('end', () => {
         res.write(`data: [DONE]\n\n`);
         res.end();
       });
-
-      cozeResp.data.on('error', (e) => {
+      cozeResp.data.on('error', e => {
         res.write(`data: 流异常：${e.message}\n\n`);
+        res.write(`data: [DONE]\n\n`);
         res.end();
       });
     } catch (err) {
-      res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
+      console.error('bot对话报错：', err?.response?.data || err.message);
+      res.write(`data: 请求失败：${err.message}\n\n`);
+      res.write(`data: [DONE]\n\n`);
       res.end();
     }
   } else if (mode === 'workflow') {
     try {
-      const { workflow_id, business_type, target_region, user_query, ...rest } = req.query;
       const targetWfId = workflow_id;
-      let sendParams = { ...rest };
+      const sendParams = { ...params };
 
-      if (targetWfId === "7702680885376614438") {
-        sendParams = {
-          business_type,
-          target_region,
-          ...(user_query ? { user_query } : {})
-        };
-        console.log("【出海入参】", sendParams);
-
+      if (targetWfId === WF_OVERSEA) {
+        console.log("【企业出海入参】", sendParams);
         const cozeResp = await axios({
           method: "POST",
-          url: "https://api.coze.cn/v1/workflow/stream_run",
+          url: `${COZE_BASE}/v1/workflow/stream_run`,
           headers: {
             Authorization: `Bearer ${COZE_PAT}`,
             "Content-Type": "application/json"
@@ -182,51 +155,29 @@ app.get('/api/stream', async (req, res) => {
           },
           responseType: "stream"
         });
-
         cozeResp.data.on('data', chunk => {
-          const rawStr = chunk.toString('utf8');
-          const lines = rawStr.split(/\r?\n/);
-          let currentEvent = "";
+          const raw = chunk.toString('utf8');
+          const lines = raw.split('\n');
           for (const line of lines) {
-            const trimLine = line.trim();
-            if (!trimLine) continue;
-            if (trimLine.startsWith('event: ')) {
-              currentEvent = trimLine.slice(7);
-              continue;
-            }
-            if (trimLine.startsWith('data: ')) {
-              try {
-                const payload = JSON.parse(trimLine.slice(6));
-                if (currentEvent === 'PING') continue;
-                const innerStr = payload.content;
-                if (!innerStr) continue;
-                const innerJson = JSON.parse(innerStr);
-                let text = innerJson.content;
-                text = text.replace(/\n/g, '\\n');
-                res.write(`data: ${text}\n\n`);
-              } catch (err) {
-                console.error('解析异常：', err);
-              }
+            if (line.startsWith('data:')) {
+              res.write(`${line}\n\n`);
             }
           }
         });
-
         cozeResp.data.on('end', () => {
           res.write(`data: [DONE]\n\n`);
           res.end();
         });
-
         cozeResp.data.on('error', err => {
           console.log("【出海流报错】", err.message);
+          res.write(`data: [DONE]\n\n`);
           res.end();
         });
       } else if (targetWfId === WF_COMPLAINT) {
         let fullText = '';
-        let currentEvent = "";
-
         const cozeResp = await axios({
           method: "POST",
-          url: "https://api.coze.cn/v1/workflow/stream_run",
+          url: `${COZE_BASE}/v1/workflow/stream_run`,
           headers: {
             Authorization: `Bearer ${COZE_PAT}`,
             "Content-Type": "application/json"
@@ -237,36 +188,25 @@ app.get('/api/stream', async (req, res) => {
           },
           responseType: "stream"
         });
-
         cozeResp.data.on('data', chunk => {
-          const rawStr = chunk.toString('utf8');
-          const lines = rawStr.split(/\r?\n/);
+          const raw = chunk.toString('utf8');
+          const lines = raw.split('\n');
           for (const line of lines) {
-            const trimLine = line.trim();
-            if (!trimLine) continue;
-            if (trimLine.startsWith('event: ')) {
-              currentEvent = trimLine.slice(7);
-              continue;
-            }
-            if (trimLine.startsWith('data: ')) {
+            if (line.startsWith('data:')) {
               try {
-                const payload = JSON.parse(trimLine.slice(6));
-                if (payload.content) {
-                  fullText = payload.content;
+                const json = JSON.parse(line.replace('data:', ''));
+                if (json.content) {
+                  fullText = json.content;
                 }
-              } catch (err) {
-                console.log("诉状解析 err", err, line);
-              }
+              } catch (e) {}
             }
           }
         });
-
         cozeResp.data.on('end', () => {
           res.write(`data:${fullText}\n\n`);
           res.write('data:[DONE]\n\n');
           res.end();
         });
-
         cozeResp.data.on('error', err => {
           console.log("【诉状流报错】", err.message);
           res.end();
@@ -275,7 +215,7 @@ app.get('/api/stream', async (req, res) => {
         try {
           const resp = await axios({
             method: "POST",
-            url: "https://api.coze.cn/v1/workflow/run",
+            url: `${COZE_BASE}/v1/workflow/run`,
             headers: {
               Authorization: `Bearer ${COZE_PAT}`,
               "Content-Type": "application/json"
@@ -285,7 +225,10 @@ app.get('/api/stream', async (req, res) => {
               parameters: sendParams
             }
           });
-          const outputData = resp.data.data.output;
+          const rawStr = resp.data.data;
+          const parsedAll = JSON.parse(rawStr);
+          const outputData = parsedAll.output || {};
+
           const sendObj = {
             type: "case",
             data: {
@@ -316,13 +259,14 @@ app.get('/api/stream', async (req, res) => {
         res.end();
       }
     } catch (globalErr) {
-      console.error("workflow外层捕获", globalErr);
+      console.error("workflow外层捕获：", globalErr.message);
       res.write(`data: workflow请求异常：${globalErr.message}\n\n`);
       res.write('data:[DONE]\n\n');
       res.end();
     }
   } else {
-    res.write(`data: 错误：mode 参数非法\n\n`);
+    res.write(`data: mode参数非法\n\n`);
+    res.write('data:[DONE]\n\n');
     res.end();
   }
 });
@@ -330,17 +274,17 @@ app.get('/api/stream', async (req, res) => {
 app.post('/api/workflow/contract', async (req, res) => {
   try {
     const { workflow_id, file_id } = req.body;
-    console.log("收到合同审查请求，workflow_id:", workflow_id, "file_id:", file_id);
+    console.log("收到合同审查请求 workflow_id:", workflow_id, "file_id:", file_id);
     const pat = process.env.COZE_PAT;
     if (!pat) {
-      console.log("错误：PAT 环境变量为空！");
-      return res.status(500).json({ error: "服务端 PAT 令牌未配置" });
+      console.log("错误：PAT为空");
+      return res.status(500).json({ error: "服务端PAT配置缺失" });
     }
-    const cozeRes = await axios.post('https://api.coze.cn/v1/workflow/run',
+    const cozeRes = await axios.post(`${COZE_BASE}/v1/workflow/run`,
       {
-        workflow_id: workflow_id,
+        workflow_id,
         parameters: {
-          input: { file_id: file_id }
+          input: { file_id }
         }
       },
       {
@@ -350,10 +294,10 @@ app.post('/api/workflow/contract', async (req, res) => {
         }
       }
     );
-    console.log("Coze 合同接口返回成功");
+    console.log("合同接口返回成功");
     res.json(cozeRes.data);
   } catch (err) {
-    console.log('==== 合同接口原始报错 ====');
+    console.log('====合同接口报错====');
     console.log("status:", err.response?.status);
     console.log("data:", err.response?.data);
     res.status(500).json({
@@ -362,7 +306,7 @@ app.post('/api/workflow/contract', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("服务启动成功，端口：", PORT);
+  console.log(`服务启动成功，端口：${PORT}`);
 });
