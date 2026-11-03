@@ -637,48 +637,34 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = `${baseUrl}/api/stream?${params.toString()}`;
         evtSource = new EventSource(url);
 
-evtSource.onmessage = (e) => {
-  if (e.data === "PING") return;
-  if (e.data === "[DONE]") {
-    evtSource.close();
-    return;
-  }
-  try {
-    const resObj = JSON.parse(e.data);
-    console.log("【后端完整返回包】", resObj);
-    if (resObj.type === "case") {
-      const resultData = resObj.data;
-      const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
-      console.log("拿到案例数组", caseList);
+        evtSource.onmessage = (e) => {
+          if (e.data === "PING") return;
+          if (e.data === "[DONE]") {
+            evtSource.close();
+            return;
+          }
+          try {
+            const resObj = JSON.parse(e.data);
+            console.log("【案例返回】", resObj);
+            if (resObj.type === "case") {
+              const resultData = resObj.data;
+              const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
+              const total = Number(resultData.total) || 0;
 
-      if (caseList.length === 0) {
-        caseResults.innerHTML = `<div class="no-result">暂无匹配案例</div>`;
-        if(loadMoreWrap) loadMoreWrap.style.display = "none";
-        return;
-      }
+              if(resultsNumber) resultsNumber.textContent = total;
 
-      // 渲染循环，展示全部字段，适配 documentId
-      let html = '';
-      caseList.forEach(item => {
-        html += `
-        <div class="case-item">
-          <p><strong>案件编号ID：</strong>${item.documentId || ''}</p>
-          <p><strong>案件类型：</strong>${item.extractCaseType || ''}</p>
-          <p><strong>审理机构：</strong>${item.extractCourt || ''}</p>
-          <p><strong>年份：</strong>${item.extractYear || ''}</p>
-          <p><strong>案情详情：</strong>${item.output || ''}</p>
-        </div>
-        `;
-      });
-      caseResults.innerHTML = html;
-      if(loadMoreWrap) loadMoreWrap.style.display = "block";
-    }
-  } catch (err) {
-    console.error("前端解析错误", err, e.data);
-  }
-};
-
-
+              if (caseList.length === 0) {
+                caseResults.innerHTML = `<div class="no-results">${resultData.tip_msg || '暂无匹配案例'}</div>`;
+                if(loadMoreWrap) loadMoreWrap.style.display = "none";
+                return;
+              }
+              renderList(caseList);
+              if(loadMoreWrap) loadMoreWrap.style.display = "block";
+            }
+          } catch (err) {
+            console.error("案例前端解析错误", err, e.data);
+          }
+        };
 
         evtSource.onerror = ()=>{
             evtSource.close();
@@ -713,13 +699,12 @@ evtSource.onmessage = (e) => {
         // Coze year 是 int：全部年份传数字 0，否则转数字
         const year = raw_year === 'all' ? 0 : Number(raw_year);
 
-        // ===== 校验规则：全部类型 / 全部年份 必须三选一有效 =====
+        // ===== 校验规则：全部类型 / 全部年份 必须输入关键词或者法律援助中心 =====
         const isAllType = case_type === "全部类型";
         const isAllYear = year === 0;
         if (isAllType || isAllYear) {
-            const valid = Boolean(keyword || court || (!isAllType));
-            if (!valid) {
-                alert('【案件类型为全部类型】或【年份范围为全部年份】时，请至少填写：关键词、法律援助中心、选择具体案件类型其中一项！');
+            if (!keyword && !court) {
+                alert('【案件类型为全部类型】或【年份范围为全部年份】时，请输入关键词或者填写法律援助中心！');
                 return;
             }
         }
@@ -769,3 +754,4 @@ evtSource.onmessage = (e) => {
 </script>
 </body>
 </html>
+
