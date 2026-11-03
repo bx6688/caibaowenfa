@@ -293,7 +293,46 @@ if (targetWfId === "7702680885376614438") {
     console.log("【诉状流报错】", err.message);
     res.end();
   });
+}else if (targetWfId === WF_CASE_SEARCH) {
+  let fullPayload = null;
+  let currentEvent = "";
+  cozeResp.data.on('data', chunk => {
+    const rawStr = chunk.toString('utf8');
+    const lines = rawStr.split(/\r?\n/);
+    for (const line of lines) {
+      const trimLine = line.trim();
+      if (!trimLine) continue;
+      if (trimLine.startsWith('event: ')) {
+        currentEvent = trimLine.slice(7);
+        continue;
+      }
+      if (trimLine.startsWith('data: ')) {
+        try {
+          const payload = JSON.parse(trimLine.slice(6));
+          // 捕获coze工作流结束节点输出的完整结果
+          if (payload.content) {
+            fullPayload = payload.content;
+          }
+        } catch(err) {
+          console.log("案例检索解析err", err, line);
+        }
+      }
+    }
+  });
+  cozeResp.data.on('end', () => {
+    // 统一固定格式返回给前端，前端就固定解析 {type:"case", data:xxx}
+    res.write(`data: ${JSON.stringify({ type: "case", data: fullPayload })}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  });
+  cozeResp.data.on('error', err => {
+    console.log("【案例检索流报错】", err.message);
+    res.write(`data: 请求失败 ${err.message}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  });
 }
+
 
 else {
         // ===== 合同审查、其他工作流，原有代码原样保留，一字不改 =====
@@ -311,11 +350,6 @@ else {
           }
         });
         cozeResp.data.on('end', async function () {
-          if (targetWfId === WF_CASE_SEARCH) {
-            res.write("data: " + JSON.stringify({ type: "case", data: resultData }) + "\n\n");
-            res.write("data: [DONE]\n\n");
-            res.end();
-          } else {
             let outputText = "";
             if (targetWfId === WF_COMPLAINT) outputText = resultData?.pleading_text;
             if (targetWfId === WF_CONTRACT) outputText = resultData?.output;
