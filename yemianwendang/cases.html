@@ -645,38 +645,36 @@ evtSource.onmessage = (e) => {
   }
   try {
     const resObj = JSON.parse(e.data);
-    console.log("原始返回", resObj); // 先打印整包，核对结构
+    console.log("【后端完整返回包】", resObj);
     if (resObj.type === "case") {
-      // resObj.data = { final_list: [...] }
-      const payloadData = resObj.data;
-      const list = Array.isArray(payloadData.final_list) ? payloadData.final_list : [];
-      console.log("拿到案例列表", list);
+      const resultData = resObj.data;
+      const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
+      console.log("拿到案例数组", caseList);
 
-      if (list.length === 0) {
-        caseResults.innerHTML = `<div class="no-results">未找到匹配案例</div>`;
+      if (caseList.length === 0) {
+        caseResults.innerHTML = `<div class="no-result">暂无匹配案例</div>`;
         if(loadMoreWrap) loadMoreWrap.style.display = "none";
         return;
       }
 
-      // 去重渲染
-      const uniqueList = [];
-      for (const item of list) {
-        const cid = item.documentId; // 这次截图是 documentId（单t！！！）
-        if (!cid) {
-          uniqueList.push(item);
-          continue;
-        }
-        if (!loadedCaseIdSet.has(cid)) {
-          loadedCaseIdSet.add(cid);
-          uniqueList.push(item);
-        }
-      }
-      allLoadedList = allLoadedList.concat(uniqueList);
-      renderList(allLoadedList);
+      // 渲染循环，展示全部字段，适配 documentId
+      let html = '';
+      caseList.forEach(item => {
+        html += `
+        <div class="case-item">
+          <p><strong>案件编号ID：</strong>${item.documentId || ''}</p>
+          <p><strong>案件类型：</strong>${item.extractCaseType || ''}</p>
+          <p><strong>审理机构：</strong>${item.extractCourt || ''}</p>
+          <p><strong>年份：</strong>${item.extractYear || ''}</p>
+          <p><strong>案情详情：</strong>${item.output || ''}</p>
+        </div>
+        `;
+      });
+      caseResults.innerHTML = html;
       if(loadMoreWrap) loadMoreWrap.style.display = "block";
     }
   } catch (err) {
-    console.error("解析报错", err, e.data);
+    console.error("前端解析错误", err, e.data);
   }
 };
 
