@@ -639,34 +639,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = `${baseUrl}/api/stream?${params.toString()}`;
         evtSource = new EventSource(url);
 
-        evtSource.onmessage = (e) => {
-          if (e.data === "PING") return;
-          if (e.data === "[DONE]") {
-            evtSource.close();
-            return;
-          }
-          try {
-            const resObj = JSON.parse(e.data);
-            console.log("【案例返回】", resObj);
-            if (resObj.type === "case") {
-              const resultData = resObj.data;
-              const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
-              const total = Number(resultData.total) || 0;
+evtSource.onmessage = (e) => {
+  if (e.data === "PING") return;
+  if (e.data === "[DONE]") {
+    evtSource.close();
+    return;
+  }
+  try {
+    const resObj = JSON.parse(e.data);
+    console.log("【案例返回】", resObj);
+    if (resObj.type === "case") {
+      const resultData = resObj.data;
+      const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
+      const total = Number(resultData.total) || 0;
 
-              if(resultsNumber) resultsNumber.textContent = total;
+      if(resultsNumber) resultsNumber.textContent = total;
 
-              if (caseList.length === 0) {
-                caseResults.innerHTML = `<div class="no-results">${resultData.tip_msg || '暂无匹配案例'}</div>`;
-                if(loadMoreWrap) loadMoreWrap.style.display = "none";
-                return;
-              }
-              renderList(caseList);
-              if(loadMoreWrap) loadMoreWrap.style.display = "block";
-            }
-          } catch (err) {
-            console.error("案例前端解析错误", err, e.data);
-          }
-        };
+      // ✅ 修改重点：只有数组长度>0的时候才渲染；空包直接跳过，不覆盖页面
+      if (caseList.length > 0) {
+        renderList(caseList);
+        if(loadMoreWrap) loadMoreWrap.style.display = "block";
+      }
+    }
+  } catch (err) {
+    console.error("案例前端解析错误", err, e.data);
+  }
+};
+
 
         evtSource.onerror = ()=>{
             evtSource.close();
