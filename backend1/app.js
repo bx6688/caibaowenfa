@@ -225,9 +225,14 @@ app.get('/api/stream', async (req, res) => {
               parameters: sendParams
             }
           });
-          const rawStr = resp.data.data;
-          const parsedAll = JSON.parse(rawStr);
-          const outputData = parsedAll.output || {};
+          let outputData;
+          const raw = resp.data.data;
+          if (typeof raw === 'string') {
+            outputData = JSON.parse(raw);
+          } else {
+            outputData = raw || {};
+          }
+          outputData = outputData.output || outputData;
 
           const sendObj = {
             type: "case",
