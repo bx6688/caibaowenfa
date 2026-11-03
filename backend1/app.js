@@ -306,59 +306,63 @@ app.get('/api/stream', async (req, res) => {
           console.log("【诉状流报错】", err.message);
           res.end();
         });
-      } else if (targetWfId === WF_CASE_SEARCH) {
-        let fullPayload = null;
-        let currentEvent = "";
+      }else if (targetWfId === WF_CASE_SEARCH) {
+  let fullPayload = null;
+  let currentEvent = "";
 
-        const cozeResp = await axios({
-          method: "POST",
-          url: "https://api.coze.cn/v1/workflow/stream_run",
-          headers: {
-            Authorization: `Bearer ${COZE_PAT}`,
-            "Content-Type": "application/json"
-          },
-          data: {
-            workflow_id: targetWfId,
-            parameters: sendParams
-          },
-          responseType: "stream"
-        });
+  const cozeResp = await axios({
+    method: "POST",
+    url: "https://api.coze.cn/v1/workflow/stream_run",
+    headers: {
+      Authorization: `Bearer ${COZE_PAT}`,
+      "Content-Type": "application/json"
+    },
+    data: {
+      workflow_id: targetWfId,
+      parameters: sendParams
+    },
+    responseType: "stream"
+  });
 
-        cozeResp.data.on('data', chunk => {
-          const rawStr = chunk.toString('utf8');
-          const lines = rawStr.split(/\r?\n/);
-          for (const line of lines) {
-            const trimLine = line.trim();
-            if (!trimLine) continue;
-            if (trimLine.startsWith('event: ')) {
-              currentEvent = trimLine.slice(7);
-              continue;
-            }
-            if (trimLine.startsWith('data: ')) {
-              try {
-                const payload = JSON.parse(trimLine.slice(6));
-                if (payload.content) {
-                  fullPayload = payload.content;
-                }
-              } catch (err) {
-                console.log("案例检索解析 err", err, line);
-              }
-            }
+  cozeResp.data.on('data', chunk => {
+    const rawStr = chunk.toString('utf8');
+    const lines = rawStr.split(/\r?\n/);
+    for (const line of lines) {
+      const trimLine = line.trim();
+      if (!trimLine) continue;
+      if (trimLine.startsWith('event: ')) {
+        currentEvent = trimLine.slice(7);
+        continue;
+      }
+      if (trimLine.startsWith('data: ')) {
+        try {
+          const payload = JSON.parse(trimLine.slice(6));
+          if (payload.content) {
+            fullPayload = payload.content;
           }
-        });
+        } catch (err) {
+          console.log("案例检索解析 err", err, line);
+        }
+      }
+    }
+  });
 
-        cozeResp.data.on('end', () => {
-          res.write(`data: ${JSON.stringify({ type: "case", data: fullPayload })}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
+  cozeResp.data.on('end', () => {
+    // ✅ 重点：用JSON.stringify自动转义所有换行、双引号、特殊字符，根治 Unterminated string
+    const output = JSON.stringify({ type: "case", data: fullPayload });
+    res.write(`data: ${output}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  });
 
-        cozeResp.data.on('error', err => {
-          console.log("【案例检索流报错】", err.message);
-          res.write(`data: 请求失败 ${err.message}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
+  cozeResp.data.on('error', err => {
+    console.log("【案例检索流报错】", err.message);
+    const output = JSON.stringify({ type: "case", data: null, error: err.message });
+    res.write(`data: ${output}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  });
+}
       } else {
         // ===== 合同审查、其他工作流兜底，原有逻辑保留 =====
         let resultData = {};
