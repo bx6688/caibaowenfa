@@ -227,12 +227,17 @@ app.get('/api/stream', async (req, res) => {
           });
           let outputData;
           const raw = resp.data.data;
+          console.log("【案例检索 Coze 原始返回】", typeof raw, raw?.slice ? raw.slice(0, 300) : raw);
           if (typeof raw === 'string') {
             outputData = JSON.parse(raw);
           } else {
             outputData = raw || {};
           }
           outputData = outputData.output || outputData;
+          console.log("【案例检索 解析后 final_list 条数】", outputData?.final_list?.length || 0);
+          if (outputData?.final_list?.[0]) {
+            console.log("【案例检索 第一条样例】", JSON.stringify(outputData.final_list[0]).slice(0, 500));
+          }
 
           const sendObj = {
             type: "case",
