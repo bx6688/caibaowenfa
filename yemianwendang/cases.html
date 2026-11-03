@@ -645,22 +645,23 @@ evtSource.onmessage = (e) => {
   }
   try {
     const resObj = JSON.parse(e.data);
+    console.log("原始返回", resObj); // 先打印整包，核对结构
     if (resObj.type === "case") {
-      // 严格对齐Coze输出：final_list
-      const caseResult = resObj.data || { final_list: [] };
-      const list = caseResult.final_list || [];
+      // resObj.data = { final_list: [...] }
+      const payloadData = resObj.data;
+      const list = Array.isArray(payloadData.final_list) ? payloadData.final_list : [];
       console.log("拿到案例列表", list);
 
-      if (!Array.isArray(list) || list.length === 0) {
-        if(allLoadedList.length === 0 && caseResults){
-          caseResults.innerHTML = `<div class="no-results">未找到匹配案例</div>`;
-        }
+      if (list.length === 0) {
+        caseResults.innerHTML = `<div class="no-results">未找到匹配案例</div>`;
         if(loadMoreWrap) loadMoreWrap.style.display = "none";
         return;
       }
+
+      // 去重渲染
       const uniqueList = [];
       for (const item of list) {
-        const cid = item.documentId || item.documentID || item.documenttId;
+        const cid = item.documentId; // 这次截图是 documentId（单t！！！）
         if (!cid) {
           uniqueList.push(item);
           continue;
@@ -670,18 +671,15 @@ evtSource.onmessage = (e) => {
           uniqueList.push(item);
         }
       }
-      if (uniqueList.length === 0) {
-        if(loadMoreWrap) loadMoreWrap.style.display = "none";
-        return;
-      }
       allLoadedList = allLoadedList.concat(uniqueList);
       renderList(allLoadedList);
       if(loadMoreWrap) loadMoreWrap.style.display = "block";
     }
   } catch (err) {
-    console.error("本条案例解析跳过", err);
+    console.error("解析报错", err, e.data);
   }
 };
+
 
 
         evtSource.onerror = ()=>{
