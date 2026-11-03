@@ -452,7 +452,7 @@
                 <div class="search-section">
                     <div class="search-filters">
                         <div class="filter-group filter-keyword">
-                            <label>关键词:</label>
+                            <label for="case-search-input">关键词:</label>
                             <input type="text" id="case-search-input" placeholder="输入关键词搜索案例...">
                         </div>
                         <div class="filter-group">
@@ -552,7 +552,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const baseUrl = "https://caibaowenfa.onrender.com";
-    let evtSource = null;
     let currentPage = 1;
     let allCases = [];
     const pageSize = 10;
@@ -667,7 +666,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchPageData(){
-        if(evtSource) evtSource.close();
         const params = searchParamsCache;
         if (!params) {
             if(caseResults) caseResults.innerHTML = `<div class="no-results">搜索参数异常</div>`;
@@ -675,56 +673,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         params.set("page", String(currentPage));
         const url = `${baseUrl}/api/stream?${params.toString()}`;
-        evtSource = new EventSource(url);
+        console.log("【请求 URL】", url);
 
-evtSource.onmessage = (e) => {
-  if (e.data === "PING") return;
-  if (e.data === "[DONE]") {
-    evtSource.close();
-    return;
-  }
-  try {
-    const resObj = JSON.parse(e.data);
-    console.log("【案例返回】", resObj);
-    if (resObj.type === "case") {
-      const resultData = resObj.data;
-      const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
-      const total = Number(resultData.total || caseList.length);
+        try {
+            const resp = await fetch(url);
+            const text = await resp.text();
+            console.log("【fetch 原始响应】", text.slice(0, 500));
 
-      allCases = caseList;
-      if(resultsNumber) resultsNumber.textContent = total;
+            // 解析 SSE 格式
+            const lines = text.split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('data:')) {
+                    const data = trimmed.slice(5).trim();
+                    if (data === '[DONE]' || data === 'PING') continue;
+                    try {
+                        const resObj = JSON.parse(data);
+                        console.log("【案例返回解析后】", resObj);
+                        if (resObj.type === "case") {
+                            const resultData = resObj.data;
+                            const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
+                            const total = Number(resultData.total || caseList.length);
 
-      const start = 0;
-      const firstPage = allCases.slice(start, pageSize);
+                            allCases = caseList;
+                            if(resultsNumber) resultsNumber.textContent = total;
 
-      if (firstPage.length > 0) {
-        renderList(firstPage, false);
-        if (loadMoreWrap) {
-          if (allCases.length <= pageSize) {
-            loadMoreWrap.style.display = "none";
-          } else {
-            loadMoreWrap.style.display = "block";
-          }
+                            const start = 0;
+                            const firstPage = allCases.slice(start, pageSize);
+
+                            if (firstPage.length > 0) {
+                                renderList(firstPage, false);
+                                if (loadMoreWrap) {
+                                    loadMoreWrap.style.display = allCases.length > pageSize ? "block" : "none";
+                                }
+                            } else {
+                                if(caseResults) caseResults.innerHTML = `<div class="no-results">${resultData.tip_msg || '没有找到匹配的案例'}</div>`;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("解析 SSE 行失败", e, data);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("【fetch 请求失败】", err);
+            if(caseResults) caseResults.innerHTML = `<div class="no-results">请求出错: ${err.message}</div>`;
         }
-      } else {
-        if(caseResults) caseResults.innerHTML = `<div class="no-results">${resultData.tip_msg || '没有找到匹配的案例'}</div>`;
-      }
-    }
-  } catch (err) {
-    console.warn("丢弃非法SSE数据包", err, e.data);
-  }
-};
-
-
-
-        evtSource.onerror = ()=>{
-            evtSource.close();
-            if(caseResults) caseResults.innerHTML = `<div class="no-results">请求出错，请重试</div>`;
-        };
     }
 
     async function performSearch() {
-        if(evtSource) evtSource.close();
         currentPage = 1;
         allCases = [];
 
