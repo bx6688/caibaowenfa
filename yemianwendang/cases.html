@@ -633,15 +633,27 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const resObj = JSON.parse(e.data);
                 if(resObj.type === "case"){
-                    const {final_list, total, tip_msg} = resObj.data;
-                    resultsNumber.textContent = total||0;
-                    if(!final_list || final_list.length===0){
-                        if(allLoadedList.length === 0){
-                            caseResults.innerHTML = `<div class="no-results">${tip_msg||"未找到匹配案例"}</div>`;
-                        }
+                    // 先判空，防止 resObj.data 是 null 直接解构报错
+                    if(!resObj.data){
+                        caseResults.innerHTML = `<div class="no-results">未找到匹配案例</div>`;
+                        resultsNumber.textContent = 0;
                         loadMoreWrap.style.display = "none";
                         return;
                     }
+                }
+    const {final_list, total, tip_msg} = resObj.data;
+    resultsNumber.textContent = total||0;
+    if(!final_list || final_list.length===0){
+        if(allLoadedList.length === 0){
+            caseResults.innerHTML = `<div class="no-results">${tip_msg||"未找到匹配案例"}</div>`;
+        }
+        loadMoreWrap.style.display = "none";
+        return;
+    }
+    // 你后面原来的渲染代码保留不动
+}
+
+
                     // A-xxxx 去重逻辑
                     const uniqueList = [];
                     for (const item of final_list) {
