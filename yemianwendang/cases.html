@@ -651,20 +651,21 @@ evtSource.onmessage = (e) => {
     if (resObj.type === "case") {
       const resultData = resObj.data;
       const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
-      const total = Number(resultData.total) || 0;
-
+      const total = Number(resultData.total || caseList.length);
       if(resultsNumber) resultsNumber.textContent = total;
 
-      // ✅ 修改重点：只有数组长度>0的时候才渲染；空包直接跳过，不覆盖页面
+      // 空数组直接跳过，不渲染覆盖页面
       if (caseList.length > 0) {
         renderList(caseList);
         if(loadMoreWrap) loadMoreWrap.style.display = "block";
       }
     }
   } catch (err) {
-    console.error("案例前端解析错误", err, e.data);
+    // 解析失败直接丢弃坏包，不阻断整个流
+    console.warn("丢弃非法SSE数据包", err, e.data);
   }
 };
+
 
 
         evtSource.onerror = ()=>{
