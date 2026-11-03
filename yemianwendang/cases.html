@@ -637,49 +637,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = `${baseUrl}/api/stream?${params.toString()}`;
         evtSource = new EventSource(url);
 
-        evtSource.onmessage = (e) => {
-            if(e.data === "PING") return;
-            if(e.data === "[DONE]"){
-                evtSource.close();
+evtSource.onmessage = (e) => {
+    if(e.data === "PING") return;
+    if(e.data === "[DONE]"){
+        evtSource.close();
+        return;
+    }
+    try {
+        const resObj = JSON.parse(e.data);
+        if(resObj.type === "case" && resObj.data){
+            const {final_list, total, tip_msg} = resObj.data;
+            if(resultsNumber) resultsNumber.textContent = total||0;
+            if(!final_list || !Array.isArray(final_list) || final_list.length===0){
+                if(allLoadedList.length === 0){
+                    if(caseResults) caseResults.innerHTML = `<div class="no-results">${tip_msg||"未找到匹配案例"}</div>`;
+                }
+                if(loadMoreWrap) loadMoreWrap.style.display = "none";
                 return;
             }
-            try {
-                const resObj = JSON.parse(e.data);
-                if(resObj.type === "case"){
-                    const {final_list, total, tip_msg} = resObj.data;
-                    if(resultsNumber) resultsNumber.textContent = total||0;
-                    if(!final_list || !Array.isArray(final_list) || final_list.length===0){
-                        if(allLoadedList.length === 0){
-                            if(caseResults) caseResults.innerHTML = `<div class="no-results">${tip_msg||"未找到匹配案例"}</div>`;
-                        }
-                        if(loadMoreWrap) loadMoreWrap.style.display = "none";
-                        return;
-                    }
-                    // documentId 去重
-                    const uniqueList = [];
-                    for (const item of final_list) {
-                        const cid = item.documentId || item.documentID;
-                        if (!cid) {
-                            uniqueList.push(item);
-                            continue;
-                        }
-                        if (!loadedCaseIdSet.has(cid)) {
-                            loadedCaseIdSet.add(cid);
-                            uniqueList.push(item);
-                        }
-                    }
-                    if(uniqueList.length === 0){
-                        if(loadMoreWrap) loadMoreWrap.style.display = "none";
-                        return;
-                    }
-                    allLoadedList = allLoadedList.concat(uniqueList);
-                    renderList(allLoadedList);
-                    if(loadMoreWrap) loadMoreWrap.style.display = "block";
+            const uniqueList = [];
+            for (const item of final_list) {
+                const cid = item.documentId || item.documentID;
+                if (!cid) {
+                    uniqueList.push(item);
+                    continue;
                 }
-            }catch(err){
-                console.error("解析案例JSON失败",err);
+                if (!loadedCaseIdSet.has(cid)) {
+                    loadedCaseIdSet.add(cid);
+                    uniqueList.push(item);
+                }
             }
-        };
+            if(uniqueList.length === 0){
+                if(loadMoreWrap) loadMoreWrap.style.display = "none";
+                return;
+            }
+            allLoadedList = allLoadedList.concat(uniqueList);
+            renderList(allLoadedList);
+            if(loadMoreWrap) loadMoreWrap.style.display = "block";
+        }
+    }catch(err){
+        console.error("解析本条案例数据失败，跳过", err);
+    }
+};
         evtSource.onerror = ()=>{
             evtSource.close();
             if(caseResults) caseResults.innerHTML = `<div class="no-results">请求出错，请重试</div>`;
