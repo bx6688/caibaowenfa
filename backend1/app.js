@@ -271,46 +271,56 @@ app.get('/api/stream', async (req, res) => {
           console.log("【诉状流报错】", err.message);
           res.end();
         });
-} else if (targetWfId === WF_CASE_SEARCH) {
-  try {
-    const resp = await axios({
-      method: "POST",
-      url: "https://api.coze.cn/v1/workflow/run",
-      headers: {
-        Authorization: `Bearer ${COZE_PAT}`,
-        "Content-Type": "application/json"
-      },
-      data: {
-        workflow_id: targetWfId,
-        parameters: sendParams
+      } else if (targetWfId === WF_CASE_SEARCH) {
+        try {
+          const resp = await axios({
+            method: "POST",
+            url: "https://api.coze.cn/v1/workflow/run",
+            headers: {
+              Authorization: `Bearer ${COZE_PAT}`,
+              "Content-Type": "application/json"
+            },
+            data: {
+              workflow_id: targetWfId,
+              parameters: sendParams
+            }
+          });
+          const outputData = resp.data.data.output;
+          const sendObj = {
+            type: "case",
+            data: {
+              final_list: outputData.final_list || [],
+              total: outputData.total || 0,
+              tip_msg: outputData.tip_msg || ""
+            }
+          };
+          const sseMsg = JSON.stringify(sendObj);
+          res.write(`data: ${sseMsg}\n\n`);
+          res.write('data:[DONE]\n\n');
+          res.end();
+        } catch (err) {
+          console.error("案例检索同步接口报错：", err?.response?.data || err.message);
+          const sendObj = {
+            type: "case",
+            data: { final_list: [] },
+            error: "请求Coze工作流失败"
+          };
+          const sseMsg = JSON.stringify(sendObj);
+          res.write(`data: ${sseMsg}\n\n`);
+          res.write('data:[DONE]\n\n');
+          res.end();
+        }
+      } else {
+        res.write(`data: 错误：workflow_id 不匹配\n\n`);
+        res.write('data:[DONE]\n\n');
+        res.end();
       }
-    });
-    // 扣子run接口返回结构：resp.data.data.output 就是你结束节点输出变量集合
-    const outputData = resp.data.data.output;
-    const sendObj = {
-      type: "case",
-      data: {
-        final_list: outputData.final_list || [],
-        total: outputData.total || 0,
-        tip_msg: outputData.tip_msg || ""
-      }
-    };
-    const sseMsg = JSON.stringify(sendObj);
-    res.write(`data: ${sseMsg}\n\n`);
-    res.write('data:[DONE]\n\n');
-    res.end();
-  } catch (err) {
-    console.error("案例检索同步接口报错：", err?.response?.data || err.message);
-    const sendObj = {
-      type: "case",
-      data: { final_list: [] },
-      error: "请求Coze工作流失败"
-    };
-    const sseMsg = JSON.stringify(sendObj);
-    res.write(`data: ${sseMsg}\n\n`);
-    res.write('data:[DONE]\n\n');
-    res.end();
-  }
+    } catch (globalErr) {
+      console.error("workflow外层捕获", globalErr);
+      res.write(`data: workflow请求异常：${globalErr.message}\n\n`);
+      res.write('data:[DONE]\n\n');
+      res.end();
+    }
   } else {
     res.write(`data: 错误：mode 参数非法\n\n`);
     res.end();
