@@ -605,13 +605,24 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isAppend) {
             if(caseResults) caseResults.innerHTML = "";
         }
+        console.log("【renderList 收到】", list);
         let html = "";
         list.forEach(item=>{
-            const title = item.output?.slice(0, 60) || "未知案例";
+            console.log("【单条案例 item】", item);
+            const rawText = item.output || item.content || item.text || "";
+            let title = "未知案例";
+            if (rawText) {
+                const nameMatch = rawText.match(/案件名称[:：]\s*([^\n]+)/);
+                if (nameMatch) {
+                    title = nameMatch[1].trim().slice(0, 40);
+                } else {
+                    title = rawText.replace(/\n/g, " ").slice(0, 50);
+                }
+            }
             const type = item.extractCaseType || "";
             const court = item.extractCourt || "";
             const date = item.extractYear ? String(item.extractYear) : "";
-            const content = item.output || "";
+            const content = rawText.replace(/\n/g, "<br>");
 
             html += `
 <div class="case-card">
@@ -636,11 +647,17 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.view-detail-btn').forEach(btn=>{
             btn.onclick=function(){
                 const item = JSON.parse(this.dataset.item);
-                document.getElementById('detail-title').innerText = item.output?.slice(0, 80) || "案例详情";
+                const rawText = item.output || item.content || item.text || "";
+                let title = "案例详情";
+                if (rawText) {
+                    const nameMatch = rawText.match(/案件名称[:：]\s*([^\n]+)/);
+                    title = nameMatch ? nameMatch[1].trim() : rawText.slice(0, 40);
+                }
+                document.getElementById('detail-title').innerText = title;
                 document.getElementById('detail-type').innerText = item.extractCaseType || "";
                 document.getElementById('detail-court').innerText = item.extractCourt || "";
                 document.getElementById('detail-date').innerText = item.extractYear ? String(item.extractYear) : "";
-                document.getElementById('detail-case').innerText = item.output || "";
+                document.getElementById('detail-case').innerText = rawText;
                 document.getElementById('detail-judgment').innerText = "";
                 document.getElementById('detail-key-points').innerText = "";
                 document.getElementById('detail-legal-basis').innerText = "";
