@@ -311,7 +311,6 @@ app.get('/api/stream', async (req, res) => {
     res.write('data:[DONE]\n\n');
     res.end();
   }
-}
   } else {
     res.write(`data: 错误：mode 参数非法\n\n`);
     res.end();
