@@ -343,6 +343,16 @@ app.get('/api/stream', async (req, res) => {
           res.write('data:[DONE]\n\n');
           res.end();
         });
+
+
+        cozeResp.data.on('error', (err) => {
+          console.error("案例检索流异常", err.message);
+          const sendObj = { type: "case", data: { final_list: [] }, error: "接口请求失败" };
+          const sseMsg = JSON.stringify(sendObj);
+          res.write(`data: ${sseMsg}\n\n`);
+          res.write('data:[DONE]\n\n');
+          res.end();
+        });
       } else {
         res.write(`data: 错误：workflow_id 不匹配\n\n`);
         res.write('data:[DONE]\n\n');
