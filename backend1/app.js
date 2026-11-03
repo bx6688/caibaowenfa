@@ -326,6 +326,8 @@ app.get('/api/stream', async (req, res) => {
           res.write('data:[DONE]\n\n');
           res.end();
         });
+      }
+
       } else {
         let resultData = {};
         const cozeResp = await axios({
