@@ -246,6 +246,25 @@
             color: #2c3e50;
         }
 
+        /* 加载更多按钮 */
+        .load-more-wrap {
+            width:100%;
+            text-align:center;
+            margin-top:20px;
+        }
+        .load-more-btn{
+            padding: 8px 22px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .load-more-btn:hover{
+            background-color:#2980b9;
+        }
+
         /* 案例详情模态框 */
         .case-detail-modal {
             display: none;
@@ -488,6 +507,9 @@
                         <!-- 案例列表将通过JavaScript动态生成 -->
                         <div class="no-results">请输入关键词进行搜索</div>
                     </div>
+                    <div class="load-more-wrap" id="load-more-wrap" style="display:none">
+                        <button class="load-more-btn" id="load-more-btn">加载更多</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -531,6 +553,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     const baseUrl = "https://caibaowenfa.onrender.com";
     let evtSource = null;
+    let currentPage = 1;
+    let allLoadedList = [];
+    const loadedCaseIdSet = new Set();
+    let searchParamsCache = null;
 
     const searchBtn = document.querySelector('.search-btn');
     const caseSearchInput = document.getElementById('case-search-input');
@@ -542,6 +568,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const caseCourtInput = document.getElementById('case-court');
     const caseDetailModal = document.getElementById('case-detail-modal');
     const closeDetail = document.getElementById('close-detail');
+    const loadMoreWrap = document.getElementById('load-more-wrap');
+    const loadMoreBtn = document.getElementById('load-more-btn');
 
     document.querySelectorAll('.type-card').forEach(card => {
         card.addEventListener('click', function() {
@@ -551,8 +579,108 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // 加载更多
+    loadMoreBtn.onclick = function(){
+        currentPage++;
+        fetchPageData();
+    }
+
+    function renderList(list){
+        let html = "";
+        list.forEach(item=>{
+            html += `
+<div class="case-card">
+    <h4 class="case-title">${item.title||""}</h4>
+    <div class="case-meta">
+        <span class="case-type">${item.type||""}</span>
+        <span class="case-court">${item.court||""}</span>
+        <span class="case-date">${item.date||""}</span>
+    </div>
+    <p class="case-content">${(item.content||"")}</p>
+    <button class="view-detail-btn" data-item='${JSON.stringify(item).replaceAll("'","\\'")}'>查看详情</button>
+</div>`;
+        });
+        caseResults.innerHTML = html;
+        document.querySelectorAll('.view-detail-btn').forEach(btn=>{
+            btn.onclick=function(){
+                const item = JSON.parse(this.dataset.item);
+                document.getElementById('detail-title').innerText = item.title||"";
+                document.getElementById('detail-type').innerText = item.type||"";
+                document.getElementById('detail-court').innerText = item.court||"";
+                document.getElementById('detail-date').innerText = item.date||"";
+                document.getElementById('detail-case').innerText = item.caseSummary||"";
+                document.getElementById('detail-judgment').innerText = item.judgment||"";
+                document.getElementById('detail-key-points').innerText = item.keyPoints||"";
+                document.getElementById('detail-legal-basis').innerText = item.legalBasis||"";
+                caseDetailModal.style.display='block';
+            }
+        })
+    }
+
+    async function fetchPageData(){
+        if(evtSource) evtSource.close();
+        const params = searchParamsCache;
+        params.set("page", currentPage);
+        const url = `${baseUrl}/api/stream?${params.toString()}`;
+        evtSource = new EventSource(url);
+
+        evtSource.onmessage = (e) => {
+            if(e.data === "PING") return;
+            if(e.data === "[DONE]"){
+                evtSource.close();
+                return;
+            }
+            try {
+                const resObj = JSON.parse(e.data);
+                if(resObj.type === "case"){
+                    const {final_list, total, tip_msg} = resObj.data;
+                    resultsNumber.textContent = total||0;
+                    if(!final_list || final_list.length===0){
+                        if(allLoadedList.length === 0){
+                            caseResults.innerHTML = `<div class="no-results">${tip_msg||"未找到匹配案例"}</div>`;
+                        }
+                        loadMoreWrap.style.display = "none";
+                        return;
+                    }
+                    // A-xxxx 去重逻辑
+                    const uniqueList = [];
+                    for (const item of final_list) {
+                        const match = (item.content || '').match(/A-\d+/);
+                        if (!match) {
+                            uniqueList.push(item);
+                            continue;
+                        }
+                        const caseId = match[0];
+                        if (!loadedCaseIdSet.has(caseId)) {
+                            loadedCaseIdSet.add(caseId);
+                            uniqueList.push(item);
+                        }
+                    }
+                    if(uniqueList.length === 0){
+                        loadMoreWrap.style.display = "none";
+                        return;
+                    }
+                    allLoadedList = allLoadedList.concat(uniqueList);
+                    renderList(allLoadedList);
+                    loadMoreWrap.style.display = "block";
+                }
+            }catch(err){
+                console.error("解析案例JSON失败",err);
+            }
+        };
+        evtSource.onerror = ()=>{
+            evtSource.close();
+            caseResults.innerHTML = `<div class="no-results">请求出错，请重试</div>`;
+        };
+    }
+
     async function performSearch() {
         if(evtSource) evtSource.close();
+        // 重置分页
+        currentPage = 1;
+        allLoadedList = [];
+        loadedCaseIdSet.clear();
+
         const keyword = caseSearchInput.value.trim();
         const raw_case_type = caseTypeSelect.value;
         const court = caseCourtInput.value.trim();
@@ -588,6 +716,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         caseResults.innerHTML = `<div class="no-results">正在AI检索案例...</div>`;
         resultsNumber.textContent = "0";
+        loadMoreWrap.style.display = "none";
 
         // 参数和Coze开始节点输入变量一一对应
         const params = new URLSearchParams();
@@ -599,63 +728,8 @@ document.addEventListener('DOMContentLoaded', function() {
         params.append("year", year);
         params.append("sort_type", sort_type);
         params.append("search_mode","search");
-
-        const url = `${baseUrl}/api/stream?${params.toString()}`;
-        evtSource = new EventSource(url);
-
-        evtSource.onmessage = (e) => {
-            if(e.data === "PING") return;
-            if(e.data === "[DONE]"){
-                evtSource.close();
-                return;
-            }
-            try {
-                const resObj = JSON.parse(e.data);
-                if(resObj.type === "case"){
-                    const {final_list, total, tip_msg} = resObj.data;
-                    resultsNumber.textContent = total||0;
-                    if(!final_list || final_list.length===0){
-                        caseResults.innerHTML = `<div class="no-results">${tip_msg||"未找到匹配案例"}</div>`;
-                        return;
-                    }
-                    let html = "";
-                    final_list.forEach(item=>{
-                        html += `
-<div class="case-card">
-    <h4 class="case-title">${item.title||""}</h4>
-    <div class="case-meta">
-        <span class="case-type">${item.type||""}</span>
-        <span class="case-court">${item.court||""}</span>
-        <span class="case-date">${item.date||""}</span>
-    </div>
-    <p class="case-content">${(item.content||"")}</p>
-    <button class="view-detail-btn" data-item='${JSON.stringify(item).replaceAll("'","\\'")}'>查看详情</button>
-</div>`;
-                    });
-                    caseResults.innerHTML = html;
-                    document.querySelectorAll('.view-detail-btn').forEach(btn=>{
-                        btn.onclick=function(){
-                            const item = JSON.parse(this.dataset.item);
-                            document.getElementById('detail-title').innerText = item.title||"";
-                            document.getElementById('detail-type').innerText = item.type||"";
-                            document.getElementById('detail-court').innerText = item.court||"";
-                            document.getElementById('detail-date').innerText = item.date||"";
-                            document.getElementById('detail-case').innerText = item.caseSummary||"";
-                            document.getElementById('detail-judgment').innerText = item.judgment||"";
-                            document.getElementById('detail-key-points').innerText = item.keyPoints||"";
-                            document.getElementById('detail-legal-basis').innerText = item.legalBasis||"";
-                            caseDetailModal.style.display='block';
-                        }
-                    })
-                }
-            }catch(err){
-                console.error("解析案例JSON失败",err);
-            }
-        };
-        evtSource.onerror = ()=>{
-            evtSource.close();
-            caseResults.innerHTML = `<div class="no-results">请求出错，请重试</div>`;
-        };
+        searchParamsCache = params;
+        fetchPageData();
     }
 
     if(searchBtn) searchBtn.addEventListener('click', performSearch);
@@ -675,7 +749,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if(e.target === caseDetailModal) caseDetailModal.style.display='none';
     });
 });
-
 </script>
 </body>
 </html>
+
