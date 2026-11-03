@@ -302,12 +302,11 @@ app.get('/api/stream', async (req, res) => {
             if (trimLine.startsWith('data: ')) {
               try {
                 const payload = JSON.parse(trimLine.slice(6));
-                // 核心修复：空content不覆盖正确结果
                 if (payload.content && payload.content.trim() !== '') {
                   fullPayload = payload.content;
                 }
               } catch (err) {
-                console.log("案例检索解析 err", err, line);
+                console.log("案例检索解析单条SSE包 err", err, line);
               }
             }
           }
@@ -316,11 +315,20 @@ app.get('/api/stream', async (req, res) => {
         cozeResp.data.on('end', () => {
           let sendObj;
           try {
-            const caseData = fullPayload ? JSON.parse(fullPayload) : { final_list: [] };
-            sendObj = {
-              type: "case",
-              data: caseData
-            };
+            if (!fullPayload) {
+              sendObj = { type: "case", data: { final_list: [] } };
+            } else {
+              // ✅ 核心修复：把字符串里原生换行替换成转义\n，修复JSON非法
+              const fixedStr = fullPayload
+                .replace(/\r\n/g, '\\n')
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r');
+              const caseData = JSON.parse(fixedStr);
+              sendObj = {
+                type: "case",
+                data: caseData
+              };
+            }
           } catch (parseErr) {
             console.error("案例结果解析失败", parseErr, fullPayload);
             sendObj = {
