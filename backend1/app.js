@@ -271,7 +271,7 @@ app.get('/api/stream', async (req, res) => {
           console.log("【诉状流报错】", err.message);
           res.end();
         });
-      } else if (targetWfId === WF_CASE_SEARCH) {
+} else if (targetWfId === WF_CASE_SEARCH) {
         let endContent = '';
         const cozeResp = await axios({
           method: "POST",
@@ -312,10 +312,13 @@ app.get('/api/stream', async (req, res) => {
             if (!endContent) {
               sendObj = { type: "case", data: { final_list: [] } };
             } else {
-              const safeStr = endContent
-                .replace(/(?<!\\)\n/g, '\\n')
-                .replace(/(?<!\\)\r/g, '\\r');
-              const caseJson = JSON.parse(safeStr);
+              // 修复重点：先把原始字符串里所有未转义换行、双引号全部安全转义，解决 Unterminated string
+              // 不要用负向断言，Node低版本不支持 (?<!\\)
+              let safeRaw = endContent.replace(/\\/g, '\\\\');
+              safeRaw = safeRaw.replace(/"/g, '\\"');
+              safeRaw = safeRaw.replace(/\n/g, '\\n');
+              safeRaw = safeRaw.replace(/\r/g, '\\r');
+              const caseJson = JSON.parse(safeRaw);
               sendObj = {
                 type: "case",
                 data: caseJson
@@ -325,6 +328,7 @@ app.get('/api/stream', async (req, res) => {
             console.error("案例最终解析失败", e, endContent);
             sendObj = { type: "case", data: { final_list: [] }, error: "数据解析异常" };
           }
+          // JSON.stringify 本身会自动转义，保证SSE单行合法
           const sseMsg = JSON.stringify(sendObj);
           res.write(`data: ${sseMsg}\n\n`);
           res.write('data:[DONE]\n\n');
