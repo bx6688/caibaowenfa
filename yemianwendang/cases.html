@@ -554,10 +554,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const baseUrl = "https://caibaowenfa.onrender.com";
     let evtSource = null;
     let currentPage = 1;
-    let allLoadedList = [];
-    const loadedCaseIdSet = new Set();
+    let allCases = [];
+    const pageSize = 10;
     let searchParamsCache = null;
-    let isQuickCardTrigger = false; // 标记是否是快捷卡片点击
+    let isQuickCardTrigger = false;
 
     const searchBtn = document.querySelector('.search-btn');
     const caseSearchInput = document.getElementById('case-search-input');
@@ -581,15 +581,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 加载更多
     if (loadMoreBtn) {
         loadMoreBtn.onclick = function(){
             currentPage++;
-            fetchPageData();
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageData = allCases.slice(start, end);
+            if (pageData.length > 0) {
+                renderList(pageData, true);
+            }
+            const currentShown = document.querySelectorAll('.case-card').length;
+            if (loadMoreWrap) {
+                if (currentShown >= allCases.length || pageData.length < pageSize) {
+                    loadMoreWrap.style.display = "none";
+                } else {
+                    loadMoreWrap.style.display = "block";
+                }
+            }
         }
     }
 
-    function renderList(list){
+    function renderList(list, isAppend){
+        if (!isAppend) {
+            if(caseResults) caseResults.innerHTML = "";
+        }
         let html = "";
         list.forEach(item=>{
             const title = item.output?.slice(0, 60) || "未知案例";
@@ -610,7 +625,13 @@ document.addEventListener('DOMContentLoaded', function() {
     <button class="view-detail-btn" data-item='${JSON.stringify(item).replaceAll("'","\\'")}'>查看详情</button>
 </div>`;
         });
-        if(caseResults) caseResults.innerHTML = html;
+        if(caseResults) {
+            if (isAppend) {
+                caseResults.innerHTML += html;
+            } else {
+                caseResults.innerHTML = html;
+            }
+        }
 
         document.querySelectorAll('.view-detail-btn').forEach(btn=>{
             btn.onclick=function(){
@@ -652,16 +673,27 @@ evtSource.onmessage = (e) => {
       const resultData = resObj.data;
       const caseList = Array.isArray(resultData.final_list) ? resultData.final_list : [];
       const total = Number(resultData.total || caseList.length);
+
+      allCases = caseList;
       if(resultsNumber) resultsNumber.textContent = total;
 
-      // 空数组直接跳过，不渲染覆盖页面
-      if (caseList.length > 0) {
-        renderList(caseList);
-        if(loadMoreWrap) loadMoreWrap.style.display = "block";
+      const start = 0;
+      const firstPage = allCases.slice(start, pageSize);
+
+      if (firstPage.length > 0) {
+        renderList(firstPage, false);
+        if (loadMoreWrap) {
+          if (allCases.length <= pageSize) {
+            loadMoreWrap.style.display = "none";
+          } else {
+            loadMoreWrap.style.display = "block";
+          }
+        }
+      } else {
+        if(caseResults) caseResults.innerHTML = `<div class="no-results">${resultData.tip_msg || '没有找到匹配的案例'}</div>`;
       }
     }
   } catch (err) {
-    // 解析失败直接丢弃坏包，不阻断整个流
     console.warn("丢弃非法SSE数据包", err, e.data);
   }
 };
@@ -676,10 +708,8 @@ evtSource.onmessage = (e) => {
 
     async function performSearch() {
         if(evtSource) evtSource.close();
-        // 重置分页
         currentPage = 1;
-        allLoadedList = [];
-        loadedCaseIdSet.clear();
+        allCases = [];
 
         const keyword = caseSearchInput ? caseSearchInput.value.trim() : "";
         const raw_case_type = caseTypeSelect ? caseTypeSelect.value : "all";
@@ -760,4 +790,3 @@ evtSource.onmessage = (e) => {
 </script>
 </body>
 </html>
-
