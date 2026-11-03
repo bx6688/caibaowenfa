@@ -557,6 +557,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let allLoadedList = [];
     const loadedCaseIdSet = new Set();
     let searchParamsCache = null;
+    let isQuickCardTrigger = false; // 标记是否是快捷卡片点击
 
     const searchBtn = document.querySelector('.search-btn');
     const caseSearchInput = document.getElementById('case-search-input');
@@ -575,6 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
         card.addEventListener('click', function() {
             const typeValue = this.getAttribute('data-type');
             caseTypeSelect.value = typeValue;
+            isQuickCardTrigger = true;
             performSearch();
         });
     });
@@ -699,15 +701,19 @@ document.addEventListener('DOMContentLoaded', function() {
         // Coze year 是 int：全部年份传数字 0，否则转数字
         const year = raw_year === 'all' ? 0 : Number(raw_year);
 
-        // ===== 校验规则：全部类型 / 全部年份 必须输入关键词或者法律援助中心 =====
-        const isAllType = case_type === "全部类型";
-        const isAllYear = year === 0;
-        if (isAllType || isAllYear) {
-            if (!keyword && !court) {
-                alert('【案件类型为全部类型】或【年份范围为全部年份】时，请输入关键词或者填写法律援助中心！');
-                return;
+        // ===== 校验规则：只有【不是快捷卡片点击】的时候，才执行校验 =====
+        if (!isQuickCardTrigger) {
+            const isAllType = case_type === "全部类型";
+            const isAllYear = year === 0;
+            if (isAllType || isAllYear) {
+                if (!keyword && !court) {
+                    alert('【案件类型为全部类型】或【年份范围为全部年份】时，请输入关键词或者填写法律援助中心！');
+                    return;
+                }
             }
         }
+        // 搜索执行完，清空标记
+        isQuickCardTrigger = false;
 
         if(caseResults) caseResults.innerHTML = `<div class="no-results">正在 AI 检索案例...</div>`;
         if(resultsNumber) resultsNumber.textContent = "0";
