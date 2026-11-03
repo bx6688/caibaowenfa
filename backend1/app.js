@@ -313,7 +313,22 @@ app.get('/api/stream', async (req, res) => {
         });
 
         cozeResp.data.on('end', () => {
-          const output = JSON.stringify({ type: "case", data: fullPayload });
+          let sendObj;
+          try {
+            const caseData = fullPayload ? JSON.parse(fullPayload) : null;
+            sendObj = {
+              type: "case",
+              data: caseData
+            };
+          } catch (parseErr) {
+            console.error("案例结果解析失败", parseErr, fullPayload);
+            sendObj = {
+              type: "case",
+              data: null,
+              error: "返回数据解析失败"
+            };
+          }
+          const output = JSON.stringify(sendObj);
           res.write(`data: ${output}\n\n`);
           res.write('data:[DONE]\n\n');
           res.end();
@@ -321,13 +336,16 @@ app.get('/api/stream', async (req, res) => {
 
         cozeResp.data.on('error', err => {
           console.log("【案例检索流报错】", err.message);
-          const output = JSON.stringify({ type: "case", data: null, error: err.message });
+          const sendObj = {
+            type: "case",
+            data: null,
+            error: err.message
+          };
+          const output = JSON.stringify(sendObj);
           res.write(`data: ${output}\n\n`);
           res.write('data:[DONE]\n\n');
           res.end();
         });
-      }
-
       } else {
         let resultData = {};
         const cozeResp = await axios({
