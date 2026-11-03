@@ -272,9 +272,7 @@ app.get('/api/stream', async (req, res) => {
           res.end();
         });
       } else if (targetWfId === WF_CASE_SEARCH) {
-        let fullPayload = null;
-        let currentEvent = "";
-
+        let endContent = '';
         const cozeResp = await axios({
           method: "POST",
           url: "https://api.coze.cn/v1/workflow/stream_run",
@@ -295,18 +293,15 @@ app.get('/api/stream', async (req, res) => {
           for (const line of lines) {
             const trimLine = line.trim();
             if (!trimLine) continue;
-            if (trimLine.startsWith('event: ')) {
-              currentEvent = trimLine.slice(7);
-              continue;
-            }
             if (trimLine.startsWith('data: ')) {
               try {
                 const payload = JSON.parse(trimLine.slice(6));
-                if (payload.content && payload.content.trim() !== '') {
-                  fullPayload = payload.content;
+                // 【关键】只读取End结束节点的数据，和诉状逻辑统一
+                if (payload.node_title === "End" && payload.content) {
+                  endContent = payload.content;
                 }
               } catch (err) {
-                console.log("案例检索解析单条SSE包 err", err, line);
+                console.log("案例检索单包解析忽略", err.message);
               }
             }
           }
@@ -315,93 +310,37 @@ app.get('/api/stream', async (req, res) => {
         cozeResp.data.on('end', () => {
           let sendObj;
           try {
-            if (!fullPayload) {
+            if (!endContent) {
               sendObj = { type: "case", data: { final_list: [] } };
             } else {
-              // ✅ 核心修复：把字符串里原生换行替换成转义\n，修复JSON非法
-              const fixedStr = fullPayload
-                .replace(/\r\n/g, '\\n')
-                .replace(/\n/g, '\\n')
-                .replace(/\r/g, '\\r');
-              const caseData = JSON.parse(fixedStr);
+              // 安全清洗换行，规避JSON未闭合报错
+              const safeStr = endContent
+                .replace(/(?<!\\)\n/g, '\\n')
+                .replace(/(?<!\\)\r/g, '\\r');
+              const caseJson = JSON.parse(safeStr);
               sendObj = {
                 type: "case",
-                data: caseData
+                data: caseJson
               };
             }
-          } catch (parseErr) {
-            console.error("案例结果解析失败", parseErr, fullPayload);
-            sendObj = {
-              type: "case",
-              data: { final_list: [] },
-              error: "返回数据解析失败"
-            };
+          } catch (e) {
+            console.error("案例最终解析失败", e, endContent);
+            sendObj = { type: "case", data: { final_list: [] }, error: "数据解析异常" };
           }
-          const output = JSON.stringify(sendObj);
-          res.write(`data: ${output}\n\n`);
+          const sseMsg = JSON.stringify(sendObj);
+          res.write(`data: ${sseMsg}\n\n`);
           res.write('data:[DONE]\n\n');
           res.end();
         });
 
-        cozeResp.data.on('error', err => {
-          console.log("【案例检索流报错】", err.message);
-          const sendObj = {
-            type: "case",
-            data: { final_list: [] },
-            error: err.message
-          };
-          const output = JSON.stringify(sendObj);
-          res.write(`data: ${output}\n\n`);
+        cozeResp.data.on('error', (err) => {
+          console.error("案例检索流异常", err.message);
+          const sendObj = { type: "case", data: { final_list: [] }, error: "接口请求失败" };
+          const sseMsg = JSON.stringify(sendObj);
+          res.write(`data: ${sseMsg}\n\n`);
           res.write('data:[DONE]\n\n');
           res.end();
         });
-      } else {
-        let resultData = {};
-        const cozeResp = await axios({
-          method: "POST",
-          url: "https://api.coze.cn/v1/workflow/stream_run",
-          headers: {
-            Authorization: `Bearer ${COZE_PAT}`,
-            "Content-Type": "application/json"
-          },
-          data: {
-            workflow_id: targetWfId,
-            parameters: sendParams
-          },
-          responseType: "stream"
-        });
-
-        cozeResp.data.on('data', (chunk) => {
-          const str = chunk.toString('utf8');
-          const lines = str.split('\n');
-          for (const line of lines) {
-            if (!line.trim()) continue;
-            if (line.startsWith('data: ')) {
-              try {
-                resultData = JSON.parse(line.slice(6));
-              } catch (e) {}
-            }
-          }
-        });
-
-        cozeResp.data.on('end', async function () {
-          let outputText = "";
-          if (targetWfId === WF_COMPLAINT) outputText = resultData?.pleading_text;
-          if (targetWfId === WF_CONTRACT) outputText = resultData?.output;
-          outputText = typeof outputText === "string" ? outputText : "";
-          await streamText(res, outputText);
-        });
-
-        cozeResp.data.on('error', function (e) {
-          console.log('其他工作流流错误', e);
-          res.end();
-        });
-      }
-    } catch (err) {
-      console.log('axios 请求报错：', err?.response?.data || err.message);
-      res.write(`data: 请求异常 ${JSON.stringify(err?.response?.data || err.message)}\n\n`);
-      res.end();
-    }
   } else {
     res.write(`data: 错误：mode 参数非法\n\n`);
     res.end();
