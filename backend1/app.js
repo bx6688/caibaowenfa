@@ -4,16 +4,14 @@ const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
-const { FormData } = require('formdata-node'); // 原代码缺失，上传文件必须
+const { FormData } = require('formdata-node');
 
 const app = express();
 
-// 中间件
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../yemianwendang')));
 
-// multer 内存存储，最大50MB
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -22,7 +20,6 @@ const upload = multer({
   }
 });
 
-// 环境变量
 const COZE_PAT = process.env.COZE_PAT;
 const BOT_CHAT_ID = process.env.BOT_CHAT_ID;
 const WF_OVERSEA = process.env.WF_OVERSEA;
@@ -31,11 +28,6 @@ const WF_CONTRACT = process.env.WF_CONTRACT;
 const WF_CASE_SEARCH = process.env.WF_CASE_SEARCH;
 const COZE_BASE = "https://api.coze.cn";
 
-/**
- * 逐字流式输出文本（用于工作流非 case 场景）
- * @param {import('express').Response} res
- * @param {string} text
- */
 async function streamText(res, text) {
   for (const char of text) {
     res.write(`data: ${char}\n\n`);
@@ -45,10 +37,6 @@ async function streamText(res, text) {
   res.end();
 }
 
-/**
- * 上传文件到 Coze 文件接口
- * POST /api/upload-coze-file
- */
 app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -92,13 +80,7 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
   }
 });
 
-/**
- * SSE 流式接口
- * GET /api/stream
- * mode=bot：对话模式；mode=workflow：工作流模式
- */
 app.get('/api/stream', async (req, res) => {
-  // SSE 响应头
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
@@ -110,7 +92,6 @@ app.get('/api/stream', async (req, res) => {
     const { user_id, msg } = params;
     try {
       let realText = msg || "";
-      // 有文件但是无文字时自动填充提示语
       if (file_id && file_id.trim() !== '' && (!realText || realText.trim() === '')) {
         realText = "请分析这份上传的文件";
       }
@@ -180,7 +161,6 @@ app.get('/api/stream', async (req, res) => {
       const targetWfId = workflow_id;
       let sendParams = { ...rest };
 
-      // 出海工作流参数，和开始节点变量一一对应
       if (targetWfId === "7702680885376614438") {
         sendParams = {
           business_type,
@@ -207,34 +187,22 @@ app.get('/api/stream', async (req, res) => {
           const rawStr = chunk.toString('utf8');
           const lines = rawStr.split(/\r?\n/);
           let currentEvent = "";
-
           for (const line of lines) {
             const trimLine = line.trim();
             if (!trimLine) continue;
-
             if (trimLine.startsWith('event: ')) {
               currentEvent = trimLine.slice(7);
               continue;
             }
-
             if (trimLine.startsWith('data: ')) {
               try {
                 const payload = JSON.parse(trimLine.slice(6));
-                // 跳过 PING 心跳包
                 if (currentEvent === 'PING') continue;
-
-                // 取值：顶层 content（和日志结构完全匹配）
                 const innerStr = payload.content;
                 if (!innerStr) continue;
-
-                // 二次解析解开嵌套 JSON
                 const innerJson = JSON.parse(innerStr);
                 let text = innerJson.content;
-
-                // 核心修复：把正文里的换行转义，避免破坏 SSE 帧结构
                 text = text.replace(/\n/g, '\\n');
-
-                // 标准 SSE 输出，严格双换行结尾
                 res.write(`data: ${text}\n\n`);
               } catch (err) {
                 console.error('解析异常：', err);
@@ -273,7 +241,6 @@ app.get('/api/stream', async (req, res) => {
         cozeResp.data.on('data', chunk => {
           const rawStr = chunk.toString('utf8');
           const lines = rawStr.split(/\r?\n/);
-
           for (const line of lines) {
             const trimLine = line.trim();
             if (!trimLine) continue;
@@ -284,7 +251,6 @@ app.get('/api/stream', async (req, res) => {
             if (trimLine.startsWith('data: ')) {
               try {
                 const payload = JSON.parse(trimLine.slice(6));
-                // 结束节点、message 事件取 content，就是 pleading_text 链接
                 if (payload.content) {
                   fullText = payload.content;
                 }
@@ -296,7 +262,6 @@ app.get('/api/stream', async (req, res) => {
         });
 
         cozeResp.data.on('end', () => {
-          // 直接把拿到的文件链接推给前端
           res.write(`data:${fullText}\n\n`);
           res.write('data:[DONE]\n\n');
           res.end();
@@ -306,67 +271,63 @@ app.get('/api/stream', async (req, res) => {
           console.log("【诉状流报错】", err.message);
           res.end();
         });
-      }else if (targetWfId === WF_CASE_SEARCH) {
-  let fullPayload = null;
-  let currentEvent = "";
+      } else if (targetWfId === WF_CASE_SEARCH) {
+        let fullPayload = null;
+        let currentEvent = "";
 
-  const cozeResp = await axios({
-    method: "POST",
-    url: "https://api.coze.cn/v1/workflow/stream_run",
-    headers: {
-      Authorization: `Bearer ${COZE_PAT}`,
-      "Content-Type": "application/json"
-    },
-    data: {
-      workflow_id: targetWfId,
-      parameters: sendParams
-    },
-    responseType: "stream"
-  });
+        const cozeResp = await axios({
+          method: "POST",
+          url: "https://api.coze.cn/v1/workflow/stream_run",
+          headers: {
+            Authorization: `Bearer ${COZE_PAT}`,
+            "Content-Type": "application/json"
+          },
+          data: {
+            workflow_id: targetWfId,
+            parameters: sendParams
+          },
+          responseType: "stream"
+        });
 
-  cozeResp.data.on('data', chunk => {
-    const rawStr = chunk.toString('utf8');
-    const lines = rawStr.split(/\r?\n/);
-    for (const line of lines) {
-      const trimLine = line.trim();
-      if (!trimLine) continue;
-      if (trimLine.startsWith('event: ')) {
-        currentEvent = trimLine.slice(7);
-        continue;
-      }
-      if (trimLine.startsWith('data: ')) {
-        try {
-          const payload = JSON.parse(trimLine.slice(6));
-          if (payload.content) {
-            fullPayload = payload.content;
+        cozeResp.data.on('data', chunk => {
+          const rawStr = chunk.toString('utf8');
+          const lines = rawStr.split(/\r?\n/);
+          for (const line of lines) {
+            const trimLine = line.trim();
+            if (!trimLine) continue;
+            if (trimLine.startsWith('event: ')) {
+              currentEvent = trimLine.slice(7);
+              continue;
+            }
+            if (trimLine.startsWith('data: ')) {
+              try {
+                const payload = JSON.parse(trimLine.slice(6));
+                if (payload.content) {
+                  fullPayload = payload.content;
+                }
+              } catch (err) {
+                console.log("案例检索解析 err", err, line);
+              }
+            }
           }
-        } catch (err) {
-          console.log("案例检索解析 err", err, line);
-        }
-      }
-    }
-  });
+        });
 
-  cozeResp.data.on('end', () => {
-    // ✅ 重点：用JSON.stringify自动转义所有换行、双引号、特殊字符，根治 Unterminated string
-    const output = JSON.stringify({ type: "case", data: fullPayload });
-    res.write(`data: ${output}\n\n`);
-    res.write('data:[DONE]\n\n');
-    res.end();
-  });
+        cozeResp.data.on('end', () => {
+          const output = JSON.stringify({ type: "case", data: fullPayload });
+          res.write(`data: ${output}\n\n`);
+          res.write('data:[DONE]\n\n');
+          res.end();
+        });
 
-  cozeResp.data.on('error', err => {
-    console.log("【案例检索流报错】", err.message);
-    const output = JSON.stringify({ type: "case", data: null, error: err.message });
-    res.write(`data: ${output}\n\n`);
-    res.write('data:[DONE]\n\n');
-    res.end();
-  });
-}
+        cozeResp.data.on('error', err => {
+          console.log("【案例检索流报错】", err.message);
+          const output = JSON.stringify({ type: "case", data: null, error: err.message });
+          res.write(`data: ${output}\n\n`);
+          res.write('data:[DONE]\n\n');
+          res.end();
+        });
       } else {
-        // ===== 合同审查、其他工作流兜底，原有逻辑保留 =====
         let resultData = {};
-
         const cozeResp = await axios({
           method: "POST",
           url: "https://api.coze.cn/v1/workflow/stream_run",
@@ -418,12 +379,6 @@ app.get('/api/stream', async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("服务启动，端口：", PORT);
-});
-
-// ========== 新增：合同审查 同步 run 接口【独立，不影响智能对话 SSE】 ==========
 app.post('/api/workflow/contract', async (req, res) => {
   try {
     const { workflow_id, file_id } = req.body;
@@ -437,7 +392,6 @@ app.post('/api/workflow/contract', async (req, res) => {
       {
         workflow_id: workflow_id,
         parameters: {
-          // File 类型变量：直接传 {file_id:xxx} 对象，不要 JSON.stringify
           input: { file_id: file_id }
         }
       },
@@ -458,4 +412,9 @@ app.post('/api/workflow/contract', async (req, res) => {
       error: err.response?.data ?? err.message
     });
   }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("服务启动，端口：", PORT);
 });
