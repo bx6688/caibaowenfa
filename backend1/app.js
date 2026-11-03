@@ -272,126 +272,46 @@ app.get('/api/stream', async (req, res) => {
           res.end();
         });
 } else if (targetWfId === WF_CASE_SEARCH) {
-        let endContent = '';
-        let streamError = null;
-        const cozeResp = await axios({
-          method: "POST",
-          url: "https://api.coze.cn/v1/workflow/stream_run",
-          headers: {
-            Authorization: `Bearer ${COZE_PAT}`,
-            "Content-Type": "application/json"
-          },
-          data: {
-            workflow_id: targetWfId,
-            parameters: sendParams
-          },
-          responseType: "stream"
-        });
-
-        cozeResp.data.on('data', chunk => {
-          const rawStr = chunk.toString('utf8');
-          const lines = rawStr.split(/\r?\n/);
-          let currentEvent = "";
-          for (const line of lines) {
-            const trimLine = line.trim();
-            if (!trimLine) continue;
-
-            // 捕获 event: xxx （官方规范）
-            if (trimLine.startsWith('event: ')) {
-              currentEvent = trimLine.slice(7);
-              continue;
-            }
-            if (trimLine.startsWith('data: ')) {
-              try {
-                const payload = JSON.parse(trimLine.slice(6));
-                // 心跳包PING，直接跳过
-                if (currentEvent === "PING") continue;
-
-                if (currentEvent === "Message") {
-                  // Message事件：节点输出
-                  if (payload.node_title === "End" && payload.content) {
-                    endContent = payload.content;
-                  }
-                }
-                if (currentEvent === "Error") {
-                  // 捕获扣子工作流内部报错
-                  streamError = payload.error_message || "工作流执行报错";
-                  console.error("Coze工作流Error：", payload);
-                }
-                if (currentEvent === "Done") {
-                  // 官方Done事件，工作流结束标记
-                  console.log("收到Coze Done事件");
-                }
-              } catch (err) {
-                console.log("案例检索单包解析忽略", err.message, trimLine);
-              }
-            }
-          }
-        });
-
-        cozeResp.data.on('end', () => {
-          let sendObj;
-          if (streamError) {
-            sendObj = { type: "case", data: { final_list: [] }, error: streamError };
-          } else if (!endContent) {
-            sendObj = { type: "case", data: { final_list: [] }, error: "工作流没有返回结果" };
-          } else {
-            try {
-              // 交给JSON.stringify自动转义，不再手动暴力替换引号（容易二次破坏JSON）
-              const caseJson = JSON.parse(endContent);
-              sendObj = {
-                type: "case",
-                data: caseJson
-              };
-            } catch (e) {
-              console.error("案例最终解析失败", e, endContent);
-              sendObj = { type: "case", data: { final_list: [] }, error: "返回数据JSON格式错误" };
-            }
-          }
-          const sseMsg = JSON.stringify(sendObj);
-          res.write(`data: ${sseMsg}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
-
-        cozeResp.data.on('error', (err) => {
-          console.error("案例检索流异常", err.message);
-          const sendObj = { type: "case", data: { final_list: [] }, error: "请求Coze接口失败" };
-          const sseMsg = JSON.stringify(sendObj);
-          res.write(`data: ${sseMsg}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
-
-        cozeResp.data.on('error', (err) => {
-          console.error("案例检索流异常", err.message);
-          const sendObj = { type: "case", data: { final_list: [] }, error: "接口请求失败" };
-          const sseMsg = JSON.stringify(sendObj);
-          res.write(`data: ${sseMsg}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
-
-
-        cozeResp.data.on('error', (err) => {
-          console.error("案例检索流异常", err.message);
-          const sendObj = { type: "case", data: { final_list: [] }, error: "接口请求失败" };
-          const sseMsg = JSON.stringify(sendObj);
-          res.write(`data: ${sseMsg}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        });
-      } else {
-        res.write(`data: 错误：workflow_id 不匹配\n\n`);
-        res.write('data:[DONE]\n\n');
-        res.end();
+  try {
+    const resp = await axios({
+      method: "POST",
+      url: "https://api.coze.cn/v1/workflow/run",
+      headers: {
+        Authorization: `Bearer ${COZE_PAT}`,
+        "Content-Type": "application/json"
+      },
+      data: {
+        workflow_id: targetWfId,
+        parameters: sendParams
       }
-    } catch (globalErr) {
-      console.error("workflow外层捕获", globalErr);
-      res.write(`data: workflow请求异常：${globalErr.message}\n\n`);
-      res.write('data:[DONE]\n\n');
-      res.end();
-    }
+    });
+    // 扣子run接口返回结构：resp.data.data.output 就是你结束节点输出变量集合
+    const outputData = resp.data.data.output;
+    const sendObj = {
+      type: "case",
+      data: {
+        final_list: outputData.final_list || [],
+        total: outputData.total || 0,
+        tip_msg: outputData.tip_msg || ""
+      }
+    };
+    const sseMsg = JSON.stringify(sendObj);
+    res.write(`data: ${sseMsg}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  } catch (err) {
+    console.error("案例检索同步接口报错：", err?.response?.data || err.message);
+    const sendObj = {
+      type: "case",
+      data: { final_list: [] },
+      error: "请求Coze工作流失败"
+    };
+    const sseMsg = JSON.stringify(sendObj);
+    res.write(`data: ${sseMsg}\n\n`);
+    res.write('data:[DONE]\n\n');
+    res.end();
+  }
+}
   } else {
     res.write(`data: 错误：mode 参数非法\n\n`);
     res.end();
