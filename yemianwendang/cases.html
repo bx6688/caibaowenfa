@@ -646,18 +646,21 @@ evtSource.onmessage = (e) => {
   try {
     const resObj = JSON.parse(e.data);
     if (resObj.type === "case") {
-      const { final_list, total, tip_msg } = resObj.data || {};
-      if(resultsNumber) resultsNumber.textContent = total || 0;
-      if (!Array.isArray(final_list) || final_list.length === 0) {
+      // 严格对齐Coze输出：final_list
+      const caseResult = resObj.data || { final_list: [] };
+      const list = caseResult.final_list || [];
+      console.log("拿到案例列表", list);
+
+      if (!Array.isArray(list) || list.length === 0) {
         if(allLoadedList.length === 0 && caseResults){
-          caseResults.innerHTML = `<div class="no-results">${tip_msg || "未找到匹配案例"}</div>`;
+          caseResults.innerHTML = `<div class="no-results">未找到匹配案例</div>`;
         }
         if(loadMoreWrap) loadMoreWrap.style.display = "none";
         return;
       }
       const uniqueList = [];
-      for (const item of final_list) {
-        const cid = item.documentId || item.documentID;
+      for (const item of list) {
+        const cid = item.documentId || item.documentID || item.documenttId;
         if (!cid) {
           uniqueList.push(item);
           continue;
@@ -676,10 +679,10 @@ evtSource.onmessage = (e) => {
       if(loadMoreWrap) loadMoreWrap.style.display = "block";
     }
   } catch (err) {
-    // 解析失败直接跳过这条，不中断流
     console.error("本条案例解析跳过", err);
   }
 };
+
 
         evtSource.onerror = ()=>{
             evtSource.close();
