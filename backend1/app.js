@@ -309,7 +309,7 @@ app.post('/api/workflow/contract', async (req, res) => {
       {
         workflow_id,
         parameters: {
-          input: { file_id }
+          input: file_id
         }
       },
       {
@@ -330,6 +330,7 @@ app.post('/api/workflow/contract', async (req, res) => {
     });
   }
 });
+
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
