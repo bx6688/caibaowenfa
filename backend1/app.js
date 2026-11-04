@@ -6,6 +6,7 @@ const path = require('path');
 const multer = require('multer');
 const { FormData } = require('formdata-node');
 const { Readable } = require('stream');
+const { FormData, File } = require('formdata-node');
 
 
 const app = express();
@@ -49,12 +50,10 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     }
 
     const formData = new FormData();
-    // buffer转可读流，适配formdata-node 6.x
-    const stream = Readable.from(req.file.buffer);
-    formData.append('file', stream, {
-      filename: req.file.originalname,
-      contentType: req.file.mimetype
+    const file = new File([req.file.buffer], req.file.originalname, {
+      type: req.file.mimetype
     });
+    formData.append('file', file);
 
     const cozeResp = await axios.post(`${COZE_BASE}/v1/files/upload`, formData, {
       headers: {
@@ -82,6 +81,7 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     });
   }
 });
+
 
 app.get('/api/stream', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
