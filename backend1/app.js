@@ -83,31 +83,21 @@ app.get('/api/stream', async (req, res) => {
   const { mode, workflow_id, file_id, ...params } = req.query;
 
   if (mode === 'bot') {
-    const { user_id, prompt } = params;
+    // ========== 【仅这里全部重写，其余不动】==========
+    const { prompt } = params;
     try {
-      let messages = [];
-      messages.push({ role: 'user', content: prompt });
-      if (file_id) {
-        messages = [{
-          role: 'user',
-          content: [
-            { type: 'file', file_id: file_id },
-            { type: 'text', text: prompt }
-          ]
-        }];
-      }
       const cozeResp = await axios({
         method: 'POST',
-        url: `${COZE_BASE}/v3/chat`,
+        url: `${COZE_BASE}/v1/workflow/stream_run`,
         headers: {
           Authorization: `Bearer ${COZE_PAT}`,
           'Content-Type': 'application/json'
         },
         data: {
-          bot_id: BOT_CHAT_ID,
-          user_id,
-          stream: true,
-          messages
+          workflow_id: BOT_CHAT_ID,
+          parameters: {
+            manual_input: prompt // 和Coze开始节点变量manual_input严格对应
+          }
         },
         responseType: 'stream'
       });
@@ -125,16 +115,18 @@ app.get('/api/stream', async (req, res) => {
         res.end();
       });
       cozeResp.data.on('error', e => {
+        console.error('bot工作流流异常：', e.message);
         res.write(`data: 流异常：${e.message}\n\n`);
         res.write(`data: [DONE]\n\n`);
         res.end();
       });
     } catch (err) {
-      console.error('bot对话报错：', err?.response?.data || err.message);
+      console.error('bot对话（工作流）报错：', err?.response?.data || err.message);
       res.write(`data: 请求失败：${err.message}\n\n`);
       res.write(`data: [DONE]\n\n`);
       res.end();
     }
+    // ==============================================
   } else if (mode === 'workflow') {
     try {
       const targetWfId = workflow_id;
@@ -315,4 +307,5 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`服务启动成功，端口：${PORT}`);
 });
+
 
