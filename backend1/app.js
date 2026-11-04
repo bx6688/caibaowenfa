@@ -5,6 +5,8 @@ const cors = require('cors');
 const path = require('path');
 const multer = require('multer');
 const { FormData } = require('formdata-node');
+const { Readable } = require('stream');
+
 
 const app = express();
 
@@ -47,7 +49,9 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     }
 
     const formData = new FormData();
-    formData.append('file', req.file.buffer, {
+    // buffer转可读流，适配formdata-node 6.x
+    const stream = Readable.from(req.file.buffer);
+    formData.append('file', stream, {
       filename: req.file.originalname,
       contentType: req.file.mimetype
     });
@@ -60,9 +64,14 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
       timeout: 120000
     });
 
+    if (cozeResp.data.code !== 0 || !cozeResp.data.data?.id) {
+      console.error('Coze上传返回异常：', cozeResp.data);
+      return res.status(500).json({ ok: false, msg: cozeResp.data.msg || "Coze文件上传返回异常" });
+    }
+
     return res.json({
       ok: true,
-      file_id: cozeResp.data.data?.id,
+      file_id: cozeResp.data.data.id,
       msg: '上传成功'
     });
   } catch (err) {
