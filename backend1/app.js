@@ -237,7 +237,7 @@ app.get('/api/stream', async (req, res) => {
           const sendObj = {
             type: "case",
             data: {
-              final_list: outputData.final_case_list || [],
+              final_list: outputData.final_list || [],
               total: outputData.total || 0,
               tip_msg: outputData.tip_msg || ""
             }
