@@ -168,6 +168,103 @@
             background-color: #fdedec;
             color: #e74c3c;
         }
+
+        /* 审查结果操作按钮与文件预览 */
+        .result-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .result-btn {
+            padding: 7px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #fff;
+            transition: background-color 0.2s;
+        }
+
+        .preview-btn {
+            background-color: #27ae60;
+        }
+
+        .preview-btn:hover {
+            background-color: #219150;
+        }
+
+        .download-btn {
+            background-color: #3498db;
+        }
+
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+
+        .file-preview {
+            margin-top: 15px;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            background-color: #fafbfc;
+            padding: 10px;
+        }
+
+        .file-preview iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+
+        .file-preview img {
+            display: block;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .file-preview pre {
+            margin: 0;
+            max-height: 600px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .docx-preview-wrapper {
+            max-height: 600px;
+            overflow: auto;
+            padding: 10px;
+            background-color: #fff;
+        }
+
+        .preview-tip {
+            padding: 30px 10px;
+            color: #777;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .templates-hint {
+            margin: -8px 0 15px;
+            color: #777;
+            font-size: 12px;
+        }
+
+        .template-item.selected {
+            border: 2px solid #3498db;
+            background-color: #eaf4fd;
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.25);
+        }
+
+        .recent-empty {
+            padding: 12px 0;
+            color: #999;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -189,20 +286,15 @@
                     <h4 class="section-title">对话功能</h4>
                     <ul class="menu-list">
                         <li><a href="dialog.html">智能对话</a></li>
-                        <li><a href="history.html">历史对话</a></li>
                     </ul>
                 </div>
                 <div class="menu-section">
                     <h4 class="section-title">专业服务</h4>
                     <ul class="menu-list">
-                        <li><a href="cases.html">案例检索</a></li>
                         <li><a href="contracts.html" class="active">合同审查</a></li>
-                        <li><a href="overseas.html">企业出海</a></li>
                         <li><a href="litigation.html">诉状生成</a></li>
-                        <li><a href="youth.html">14-25岁青少年专区</a></li>
-                        <li><a href="daily-quiz.html">每日一题</a></li>
-            </ul>
-        </div>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -227,11 +319,16 @@
 <div class="form-section">
   <h3>审查结果</h3>
   <div id="contractResult" style="white-space:pre-wrap;min-height:120px;"></div>
-  <button id="openFileBtn" style="display:none;margin-top:10px;padding:6px 12px;background:#3498db;color:#fff;border:none;border-radius:4px;cursor:pointer;">打开生成文件</button>
+  <div class="result-actions" id="resultActions" style="display:none;">
+    <button class="result-btn preview-btn" id="previewFileBtn">预览文件</button>
+    <button class="result-btn download-btn" id="downloadFileBtn">下载文件</button>
+  </div>
+  <div class="file-preview" id="filePreview" style="display:none;"></div>
 </div>
-                <!-- 合同模板 -->
+                <!-- 选择合同模板 -->
                 <div class="contract-templates">
-                    <div class="templates-title">常用合同模板</div>
+                    <div class="templates-title">选择合同模板</div>
+                    <div class="templates-hint">请选择一个合同模板，并上传合同文件进行审查</div>
                     <div class="templates-grid">
                         <div class="template-item">
                             <div class="template-icon">📝</div>
@@ -274,33 +371,8 @@
                 <!-- 最近审查的合同 -->
                 <div class="recent-contracts">
                     <div class="recent-title">最近审查的合同</div>
-                    
-                    <div class="contract-item">
-                        <div class="contract-icon">📄</div>
-                        <div class="contract-info">
-                            <div class="contract-name">与某科技公司的技术服务合同.docx</div>
-                            <div class="contract-date">2023-06-10 审查</div>
-                        </div>
-                        <div class="contract-status status-completed">审查完成</div>
-                    </div>
-                    
-                    <div class="contract-item">
-                        <div class="contract-icon">📄</div>
-                        <div class="contract-info">
-                            <div class="contract-name">办公室租赁协议.pdf</div>
-                            <div class="contract-date">2023-06-05 审查</div>
-                        </div>
-                        <div class="contract-status status-issues">存在风险</div>
-                    </div>
-                    
-                    <div class="contract-item">
-                        <div class="contract-icon">📄</div>
-                        <div class="contract-info">
-                            <div class="contract-name">员工保密协议模板.docx</div>
-                            <div class="contract-date">2023-06-01 审查</div>
-                        </div>
-                        <div class="contract-status status-completed">审查完成</div>
-                    </div>
+                    <div class="recent-empty" id="recentEmpty">暂无审查记录，上传合同后将自动记录在这里</div>
+                    <div id="recentList"></div>
                 </div>
             </div>
         </div>
@@ -313,21 +385,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const uploadBtn = document.getElementById('upload-contract-btn');
     const templateItems = document.querySelectorAll('.template-item');
-    const contractItems = document.querySelectorAll('.contract-item');
+    const recentList = document.getElementById('recentList');
+    const recentEmpty = document.getElementById('recentEmpty');
     const resultBox = document.getElementById('contractResult');
-    const openFileBtn = document.getElementById('openFileBtn');
+    const resultActions = document.getElementById('resultActions');
+    const previewFileBtn = document.getElementById('previewFileBtn');
+    const downloadFileBtn = document.getElementById('downloadFileBtn');
+    const filePreview = document.getElementById('filePreview');
     let targetFileUrl = "";
+    let selectedTemplate = "";
 
     if (uploadBtn) {
         uploadBtn.addEventListener('click', async function() {
+            if (!selectedTemplate) {
+                alert('请先选择合同模板，再上传合同文件');
+                return;
+            }
             const fileInputDom = document.createElement('input');
             fileInputDom.type = 'file';
             fileInputDom.click();
             fileInputDom.onchange = async e=>{
                 const f = e.target.files[0];
                 if(!f) return;
-                resultBox.innerText = "正在上传文件到Coze...";
-                openFileBtn.style.display = "none";
+                const record = addRecentRecord(f.name);
+                resetResultActions();
+                resultBox.innerText = "文件上传中...";
                 const formData = new FormData();
                 formData.append("file",f);
                 const uploadResp = await fetch(`${baseUrl}/api/upload-coze-file`,{method:"POST",body:formData});
@@ -335,6 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("上传返回：", upJson);
                 if(!uploadResp.ok){
                     resultBox.innerText = "上传失败："+(upJson.msg || "未知错误");
+                    setRecordStatus(record, "审查失败", "status-issues");
                     return;
                 }
                 // 上传成功，调用合同审查同步接口
@@ -353,18 +436,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log("审查接口返回：", checkRes);
                 if(!checkResp.ok){
                     resultBox.innerText = "审查失败："+(checkRes.error || "接口异常");
+                    setRecordStatus(record, "审查失败", "status-issues");
                     return;
                 }
 // 解析外层字符串
 const dataObj = JSON.parse(checkRes.data);
 const fileUrl = dataObj.output;
+setRecordStatus(record, "审查完成", "status-completed");
 if(fileUrl){
     targetFileUrl = fileUrl;
-    resultBox.innerText = "✅ 合同审查完成，文件已生成";
-    openFileBtn.style.display = "block";
-    openFileBtn.onclick = ()=>{
-        window.open(targetFileUrl,"_blank");
-    }
+    resultBox.innerText = "✅ 合同审查完成，文件已生成，可预览或下载查看";
+    resultActions.style.display = "flex";
+    filePreview.style.display = "none";
+    filePreview.innerHTML = "";
 }else{
     resultBox.innerText = "⚠️ 审查完成，但没有读取到生成文件链接";
 }
@@ -373,18 +457,178 @@ if(fileUrl){
         });
     }
 
-    templateItems.forEach(item => {
-        item.addEventListener('click', function() {
-            const templateName = this.querySelector('.template-name').textContent;
-            alert(`将使用${templateName}模板`);
+    // 重置结果区操作状态
+    function resetResultActions() {
+        targetFileUrl = "";
+        resultActions.style.display = "none";
+        filePreview.style.display = "none";
+        filePreview.innerHTML = "";
+    }
+
+    // 格式化当前时间
+    function formatNow() {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+
+    // 在最近审查列表中新增一条记录
+    function addRecentRecord(fileName) {
+        if (recentEmpty) recentEmpty.style.display = 'none';
+        const item = document.createElement('div');
+        item.className = 'contract-item';
+        item.innerHTML = '<div class="contract-icon">📄</div>' +
+            '<div class="contract-info">' +
+            '<div class="contract-name"></div>' +
+            '<div class="contract-date"></div>' +
+            '</div>' +
+            '<div class="contract-status status-reviewing">审查中</div>';
+        item.querySelector('.contract-name').textContent = fileName;
+        item.querySelector('.contract-date').textContent = formatNow();
+        recentList.prepend(item);
+        return item;
+    }
+
+    // 更新记录状态
+    function setRecordStatus(item, text, className) {
+        const status = item.querySelector('.contract-status');
+        status.textContent = text;
+        status.className = 'contract-status ' + className;
+    }
+
+    // 从文件链接中提取文件名
+    function getFileName(url) {
+        try {
+            const pathname = new URL(url, window.location.href).pathname;
+            const name = decodeURIComponent(pathname.split('/').pop() || '');
+            return name || '合同审查结果';
+        } catch (e) {
+            return '合同审查结果';
+        }
+    }
+
+    // 获取文件扩展名
+    function getFileExt(url) {
+        const name = getFileName(url);
+        const index = name.lastIndexOf('.');
+        return index === -1 ? '' : name.slice(index + 1).toLowerCase();
+    }
+
+    // 动态加载第三方预览脚本
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('脚本加载失败'));
+            document.head.appendChild(script);
         });
+    }
+
+    // 显示预览提示
+    function showPreviewTip(message) {
+        filePreview.innerHTML = '';
+        const tip = document.createElement('div');
+        tip.className = 'preview-tip';
+        tip.textContent = message;
+        filePreview.appendChild(tip);
+        filePreview.style.display = 'block';
+    }
+
+    // 展示文件预览：PDF/图片/文本直接预览，Word 文档使用 docx-preview 渲染
+    async function showFilePreview(url) {
+        const ext = getFileExt(url);
+        filePreview.style.display = 'block';
+        filePreview.innerHTML = '<div class="preview-tip">正在加载预览...</div>';
+
+        if (ext === 'pdf') {
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            filePreview.innerHTML = '';
+            filePreview.appendChild(iframe);
+            return;
+        }
+
+        if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = '合同审查结果预览';
+            filePreview.innerHTML = '';
+            filePreview.appendChild(img);
+            return;
+        }
+
+        if (['txt', 'md', 'json', 'csv', 'log', 'xml'].includes(ext)) {
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('文件读取失败');
+                const text = await resp.text();
+                const pre = document.createElement('pre');
+                pre.textContent = text;
+                filePreview.innerHTML = '';
+                filePreview.appendChild(pre);
+            } catch (e) {
+                showPreviewTip('该文件无法在线预览，请点击“下载文件”后查看。');
+            }
+            return;
+        }
+
+        if (['doc', 'docx'].includes(ext)) {
+            try {
+                if (!window.docx) {
+                    await loadScript('https://cdn.jsdelivr.net/npm/docx-preview/dist/docx-preview.min.js');
+                }
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error('文件读取失败');
+                const buffer = await resp.arrayBuffer();
+                const wrapper = document.createElement('div');
+                wrapper.className = 'docx-preview-wrapper';
+                filePreview.innerHTML = '';
+                filePreview.appendChild(wrapper);
+                await window.docx.renderAsync(buffer, wrapper);
+            } catch (e) {
+                showPreviewTip('该文件无法在线预览，请点击“下载文件”后查看。');
+            }
+            return;
+        }
+
+        showPreviewTip('该格式暂不支持在线预览，请点击“下载文件”后查看。');
+    }
+
+    // 下载生成的文件
+    async function downloadTargetFile() {
+        if (!targetFileUrl) return;
+        const fileName = getFileName(targetFileUrl);
+        try {
+            const resp = await fetch(targetFileUrl);
+            if (!resp.ok) throw new Error('下载失败');
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch (e) {
+            // 跨域受限时退化为在新窗口打开
+            window.open(targetFileUrl, '_blank');
+        }
+    }
+
+    previewFileBtn.addEventListener('click', function() {
+        if (targetFileUrl) showFilePreview(targetFileUrl);
     });
 
-    contractItems.forEach(item => {
+    downloadFileBtn.addEventListener('click', downloadTargetFile);
+
+    // 选择合同模板（仅作前端标识，不传给后端）
+    templateItems.forEach(item => {
         item.addEventListener('click', function() {
-            const contractName = this.querySelector('.contract-name').textContent;
-            const contractStatus = this.querySelector('.contract-status').textContent;
-            alert(`查看合同：${contractName}\n状态：${contractStatus}`);
+            templateItems.forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedTemplate = this.querySelector('.template-name').textContent;
         });
     });
 });
