@@ -42,7 +42,7 @@ async function streamText(res, text) {
 app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ ok: false, msg: '未接收到上传文件' });
+      return res.status(400).json({ ok: false, msg: '未接收到文件' });
     }
     if (!COZE_PAT) {
       return res.status(500).json({ ok: false, msg: '缺少COZE_PAT环境变量' });
@@ -54,11 +54,10 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     });
     formData.append('file', file);
 
+    // =====重点：删掉 'Content-Type': formData.getContentType() 这一行！=====
     const cozeResp = await axios.post(`${COZE_BASE}/v1/files/upload`, formData, {
       headers: {
-        Authorization: `Bearer ${COZE_PAT}`,
-        // 4.x 写法！！不是 getHeaders()
-        'Content-Type': formData.getContentType()
+        Authorization: `Bearer ${COZE_PAT}`
       },
       timeout: 120000
     });
@@ -77,10 +76,11 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     console.error('文件上传异常：', err?.response?.data || err.message);
     return res.status(500).json({
       ok: false,
-      msg: err?.response?.data?.msg || '文件上传失败'
+      msg: '文件上传失败'
     });
   }
 });
+
 
 
 
