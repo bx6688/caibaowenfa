@@ -57,7 +57,8 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     const cozeResp = await axios.post(`${COZE_BASE}/v1/files/upload`, formData, {
       headers: {
         Authorization: `Bearer ${COZE_PAT}`,
-        ...formData.getHeaders()
+        // 4.x 写法！！不是 getHeaders()
+        'Content-Type': formData.getContentType()
       },
       timeout: 120000
     });
@@ -80,6 +81,7 @@ app.post('/api/upload-coze-file', upload.single('file'), async (req, res) => {
     });
   }
 });
+
 
 
 app.get('/api/stream', async (req, res) => {
