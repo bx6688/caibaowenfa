@@ -237,7 +237,7 @@ app.get('/api/stream', async (req, res) => {
           const sendObj = {
             type: "case",
             data: {
-              final_list: outputData.final_list || [],
+              final_list: outputData.final_case_list || [],
               total: outputData.total || 0,
               tip_msg: outputData.tip_msg || ""
             }
@@ -315,3 +315,4 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`服务启动成功，端口：${PORT}`);
 });
+
