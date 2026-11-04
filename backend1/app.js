@@ -24,10 +24,8 @@ const upload = multer({
 
 const COZE_PAT = process.env.COZE_PAT;
 const BOT_CHAT_ID = process.env.BOT_CHAT_ID;
-const WF_OVERSEA = process.env.WF_OVERSEA;
 const WF_COMPLAINT = process.env.WF_COMPLAINT;
 const WF_CONTRACT = process.env.WF_CONTRACT;
-const WF_CASE_SEARCH = process.env.WF_CASE_SEARCH;
 const COZE_BASE = "https://api.coze.cn";
 
 async function streamText(res, text) {
@@ -170,40 +168,7 @@ app.get('/api/stream', async (req, res) => {
       const targetWfId = workflow_id;
       const sendParams = { ...params };
 
-      if (targetWfId === WF_OVERSEA) {
-        console.log("【企业出海入参】", sendParams);
-        const cozeResp = await axios({
-          method: "POST",
-          url: `${COZE_BASE}/v1/workflow/stream_run`,
-          headers: {
-            Authorization: `Bearer ${COZE_PAT}`,
-            "Content-Type": "application/json"
-          },
-          data: {
-            workflow_id: targetWfId,
-            parameters: sendParams
-          },
-          responseType: "stream"
-        });
-        cozeResp.data.on('data', chunk => {
-          const raw = chunk.toString('utf8');
-          const lines = raw.split('\n');
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              res.write(`${line}\n\n`);
-            }
-          }
-        });
-        cozeResp.data.on('end', () => {
-          res.write(`data: [DONE]\n\n`);
-          res.end();
-        });
-        cozeResp.data.on('error', err => {
-          console.log("【出海流报错】", err.message);
-          res.write(`data: [DONE]\n\n`);
-          res.end();
-        });
-      } else if (targetWfId === WF_COMPLAINT) {
+      if (targetWfId === WF_COMPLAINT) {
         let fullText = '';
         const cozeResp = await axios({
           method: "POST",
@@ -241,53 +206,6 @@ app.get('/api/stream', async (req, res) => {
           console.log("【诉状流报错】", err.message);
           res.end();
         });
-      } else if (targetWfId === WF_CASE_SEARCH) {
-        try {
-          const resp = await axios({
-            method: "POST",
-            url: `${COZE_BASE}/v1/workflow/run`,
-            headers: {
-              Authorization: `Bearer ${COZE_PAT}`,
-              "Content-Type": "application/json"
-            },
-            data: {
-              workflow_id: targetWfId,
-              parameters: sendParams
-            }
-          });
-          let outputData;
-          const raw = resp.data.data;
-          if (typeof raw === 'string') {
-            outputData = JSON.parse(raw);
-          } else {
-            outputData = raw || {};
-          }
-          outputData = outputData.output || outputData;
-
-          const sendObj = {
-            type: "case",
-            data: {
-              final_list: outputData.final_list || [],
-              total: outputData.total || 0,
-              tip_msg: outputData.tip_msg || ""
-            }
-          };
-          const sseMsg = JSON.stringify(sendObj);
-          res.write(`data: ${sseMsg}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        } catch (err) {
-          console.error("案例检索同步接口报错：", err?.response?.data || err.message);
-          const sendObj = {
-            type: "case",
-            data: { final_list: [] },
-            error: "请求Coze工作流失败"
-          };
-          const sseMsg = JSON.stringify(sendObj);
-          res.write(`data: ${sseMsg}\n\n`);
-          res.write('data:[DONE]\n\n');
-          res.end();
-        }
       } else {
         res.write(`data: 错误：workflow_id 不匹配\n\n`);
         res.write('data:[DONE]\n\n');
