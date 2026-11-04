@@ -306,20 +306,22 @@ app.get('/api/stream', async (req, res) => {
   }
 });
 
+// ========== 替换成你指定版本的合同审查同步接口 ==========
 app.post('/api/workflow/contract', async (req, res) => {
   try {
     const { workflow_id, file_id } = req.body;
-    console.log("收到合同审查请求 workflow_id:", workflow_id, "file_id:", file_id);
+    console.log("收到合同审查请求，workflow_id:", workflow_id, "file_id:", file_id);
     const pat = process.env.COZE_PAT;
-    if (!pat) {
-      console.log("错误：PAT为空");
-      return res.status(500).json({ error: "服务端PAT配置缺失" });
+    if(!pat){
+      console.log("错误：PAT环境变量为空！");
+      return res.status(500).json({error: "服务端PAT令牌未配置"});
     }
-    const cozeRes = await axios.post(`${COZE_BASE}/v1/workflow/run`,
+    const cozeRes = await axios.post('https://api.coze.cn/v1/workflow/run',
       {
-        workflow_id,
+        workflow_id: workflow_id,
         parameters: {
-          input: file_id
+          // File类型变量：直接传 {file_id:xxx} 对象，不要JSON.stringify
+          input: { file_id: file_id }
         }
       },
       {
@@ -329,12 +331,12 @@ app.post('/api/workflow/contract', async (req, res) => {
         }
       }
     );
-    console.log("合同接口返回成功");
+    console.log("Coze返回成功：", cozeRes.data);
     res.json(cozeRes.data);
   } catch (err) {
-    console.log('====合同接口报错====');
-    console.log("status:", err.response?.status);
-    console.log("data:", err.response?.data);
+    console.log('==== Coze接口原始报错 ====');
+    console.log("err.response?.status:", err.response?.status);
+    console.log("err.response?.data:", err.response?.data);
     res.status(500).json({
       error: err.response?.data ?? err.message
     });
