@@ -82,56 +82,79 @@ app.get('/api/stream', async (req, res) => {
 
   const { mode, workflow_id, file_id, ...params } = req.query;
 
-if (mode === 'bot') {
-  const { user_id, prompt } = params;
-  try {
-    // 直接构造标准bot对话消息，适配v3/chat
-    const messages = [];
-    messages.push({
-      role: 'user',
-      content: prompt
-    });
-    const cozeResp = await axios({
-      method: 'POST',
-      url: `${COZE_BASE}/v3/chat`,
-      headers: {
-        Authorization: `Bearer ${COZE_PAT}`,
-        'Content-Type': 'application/json'
-      },
-      data: {
-        bot_id: BOT_CHAT_ID,  // ✅ 这里变回bot机器人ID，不是工作流ID！
-        user_id: user_id || "default_user",
-        stream: true,
-        messages: messages
-      },
-      responseType: 'stream'
-    });
-    cozeResp.data.on('data', chunk => {
-      const chunkStr = chunk.toString('utf8');
-      const lines = chunkStr.split('\n');
-      for (const line of lines) {
-        if (line.startsWith('data:')) {
+  if (mode === 'bot') {
+    // =========【这里是你给的新版智能对话代码，只替换这一块】=========
+    const { user_id, msg } = params;
+    try {
+      let realText = msg || "";
+      // 有文件但是无文字时自动填充提示语
+      if (file_id && file_id.trim() !== '' && (!realText || realText.trim() === '')) {
+        realText = "请分析这份上传的文件";
+      }
+
+      let messagesPayload;
+      if (file_id && file_id.trim() !== '') {
+        messagesPayload = {
+          content: JSON.stringify([
+            { type: "text", text: realText },
+            { type: "file", file_id: file_id }
+          ]),
+          content_type: "object_string",
+          role: "user",
+          type: "question"
+        };
+      } else {
+        messagesPayload = {
+          content: realText,
+          content_type: "text",
+          role: "user",
+          type: "question"
+        };
+      }
+
+      const cozeResp = await axios({
+        method: "POST",
+        url: `${COZE_BASE}/v3/chat`,
+        headers: {
+          "Authorization": `Bearer ${COZE_PAT}`,
+          "Content-Type": "application/json"
+        },
+        data: {
+          bot_id: BOT_CHAT_ID,
+          user_id,
+          stream: true,
+          additional_messages: [messagesPayload],
+          parameters: {}
+        },
+        responseType: "stream"
+      });
+
+      cozeResp.data.on('data', (chunk) => {
+        const str = chunk.toString();
+        const lines = str.split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
           res.write(`${line}\n\n`);
         }
-      }
-    });
-    cozeResp.data.on('end', () => {
+      });
+
+      cozeResp.data.on('end', () => {
+        res.write(`data: [DONE]\n\n`);
+        res.end();
+      });
+
+      cozeResp.data.on('error', (e) => {
+        res.write(`data: 流异常：${e.message}\n\n`);
+        res.write(`data: [DONE]\n\n`);
+        res.end();
+      });
+    } catch (err) {
+      console.error('bot对话报错：', err?.response?.data || err.message);
+      res.write(`data: 请求失败：${err.response?.data?.error || err.message}\n\n`);
       res.write(`data: [DONE]\n\n`);
       res.end();
-    });
-    cozeResp.data.on('error', e => {
-      console.error('Bot对话流异常：', e.message);
-      res.write(`data: 流异常：${e.message}\n\n`);
-      res.write(`data: [DONE]\n\n`);
-      res.end();
-    });
-  } catch (err) {
-    console.error('Bot对话报错：', err?.response?.data || err.message);
-    res.write(`data: 请求失败：${err.message}\n\n`);
-    res.write(`data: [DONE]\n\n`);
-    res.end();
-  }
-    // ==============================================
+    }
+    // =========================================================
   } else if (mode === 'workflow') {
     try {
       const targetWfId = workflow_id;
@@ -312,5 +335,3 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`服务启动成功，端口：${PORT}`);
 });
-
-
