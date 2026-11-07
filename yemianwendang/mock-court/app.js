@@ -812,16 +812,39 @@ let msgChain = Promise.resolve();
 let lastSpeechDoneAt = 0;
 let lastSpeechHoldMs = 0;
 
+// 上一条消息的打字机是否已把文字全部展示完。
+// 新消息必须等它打完再开场，否则 renderMessage('start') 重置打字机会把上一条截断在半句。
+let msgDisplayResolve = null;
+let msgDisplayDone = Promise.resolve();
+
+function resetMsgDisplayWait() {
+  msgDisplayDone = new Promise((resolve) => {
+    msgDisplayResolve = resolve;
+  });
+}
+
+function markMsgDisplayDone() {
+  if (!msgDisplayResolve) return;
+  const resolve = msgDisplayResolve;
+  msgDisplayResolve = null;
+  resolve();
+}
+
 function onMessagePaced(action, data) {
   const token = runToken;
   msgChain = msgChain.catch(() => {}).then(async () => {
     if (token !== runToken) return; // 本轮已停止/重置，丢弃残留消息
-    if (action === 'start' && lastSpeechDoneAt) {
-      // 开启语音播报沿用 30 秒节奏；未开启时按上一条的自然阅读时长推进
-      const holdMs = ttsToggle.checked ? SPEECH_HOLD_MS : lastSpeechHoldMs;
-      const wait = holdMs - (Date.now() - lastSpeechDoneAt);
-      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    if (action === 'start') {
+      // 先等上一条文字逐字输出完毕，即使此时已取消语音播报也不会截断半句
+      await msgDisplayDone;
       if (token !== runToken) return;
+      if (lastSpeechDoneAt) {
+        // 开启语音播报沿用 30 秒节奏；未开启时按上一条的自然阅读时长推进
+        const holdMs = ttsToggle.checked ? SPEECH_HOLD_MS : lastSpeechHoldMs;
+        const wait = holdMs - (Date.now() - lastSpeechDoneAt);
+        if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+        if (token !== runToken) return;
+      }
     }
     renderMessage(action, data);
     if (action === 'done') lastSpeechDoneAt = Date.now();
@@ -830,6 +853,7 @@ function onMessagePaced(action, data) {
 
 // 接管询问也按同样节奏：上一条发言展示结束后再弹出
 async function askTakeoverPaced(role, step) {
+  await msgDisplayDone;
   if (lastSpeechDoneAt) {
     const holdMs = ttsToggle.checked ? SPEECH_HOLD_MS : lastSpeechHoldMs;
     const wait = holdMs - (Date.now() - lastSpeechDoneAt);
@@ -871,6 +895,7 @@ function finalizeCurrentMessage() {
   }
   currentMeta = null;
   pendingDone = false;
+  markMsgDisplayDone(); // 本条文字已完整展示，放行下一条
 }
 
 function startTypewriter() {
@@ -950,6 +975,7 @@ function renderMessage(action, data) {
     pendingFullText = '';
     displayedChars = 0;
     pendingDone = false;
+    resetMsgDisplayWait(); // 本条打完后才允许下一条开始
 
     showSpeechTyping(roleKey, data.role, data.takeover);
 
@@ -991,6 +1017,7 @@ stopBtn.onclick = () => {
   trial.running = false;
   stopCourt();
   stopSpeech();
+  markMsgDisplayDone(); // 中止后放行仍排在节奏队列里的残留下一条，避免队列卡死
   stopVoiceInput();
   hideTakeoverBar();
   if (pendingResolve) {
@@ -1017,7 +1044,11 @@ stopBtn.onclick = () => {
 };
 
 ttsToggle.onchange = () => {
-  if (!ttsToggle.checked) stopSpeech();
+  if (!ttsToggle.checked) {
+    stopSpeech();
+    // 取消播报后不再按语音 30 秒节奏等待，下一条只按文字展示节奏推进
+    lastSpeechDoneAt = 0;
+  }
 };
 
 // ---------- 导出笔录 ----------
@@ -1043,6 +1074,7 @@ function resetCourt(showToast) {
   runToken += 1;
   stopCourt();
   stopSpeech();
+  markMsgDisplayDone(); // 重置时释放等待中的节奏队列，避免旧队列永久挂起
   stopVoiceInput();
   hideTakeoverBar();
   if (pendingResolve) {
