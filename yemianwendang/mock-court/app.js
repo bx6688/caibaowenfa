@@ -771,11 +771,17 @@ function updateSpeechText(roleKey, text) {
   bubble.querySelector('.say').textContent = text;
 }
 
+// 未开启语音播报时，按文本长度估算自然阅读时长，避免固定 30 秒等待
+function naturalHoldMs(text) {
+  const len = (text || '').length;
+  return Math.min(10000, Math.max(2000, len * 120));
+}
+
 function scheduleHideSpeech(roleKey, text) {
   const bubble = roleBubbles[roleKey];
   if (!bubble) return;
   clearTimeout(bubble._hideTimer);
-  // 基础展示时长：固定 30 秒，之后才会展示下一个角色的发言
+  // 基础展示时长：开启语音播报时固定 30 秒兜底，未开启时按自然阅读速度
   const baseMs = 30000;
   const stamp = Date.now();
   bubble._shownAt = stamp;
@@ -787,27 +793,32 @@ function scheduleHideSpeech(roleKey, text) {
   if (ttsToggle.checked && text) {
     // 开启语音播报：气泡保留到该角色语音播完，且不少于基础展示时长（兜底超时防卡死）
     voiceHold[roleKey] = true;
-    bubble._hideTimer = setTimeout(hide, Math.max(baseMs + 5000, timeoutFor(text) + 10000));
+    bubble._holdMs = Math.max(baseMs + 5000, timeoutFor(text) + 10000);
+    bubble._hideTimer = setTimeout(hide, bubble._holdMs);
     pendingBubbleHold[roleKey] = () => {
       clearTimeout(bubble._hideTimer);
       bubble._hideTimer = setTimeout(hide, Math.max(1500, baseMs - (Date.now() - stamp)));
     };
   } else {
-    bubble._hideTimer = setTimeout(hide, baseMs);
+    bubble._holdMs = naturalHoldMs(text);
+    bubble._hideTimer = setTimeout(hide, bubble._holdMs);
   }
 }
 
-// ---------- 发言节奏：每条发言展示 30 秒后再展示下一条 ----------
+// ---------- 发言节奏：上一条展示结束后再展示下一条 ----------
 const SPEECH_HOLD_MS = 30000;
 let msgChain = Promise.resolve();
 let lastSpeechDoneAt = 0;
+let lastSpeechHoldMs = 0;
 
 function onMessagePaced(action, data) {
   const token = runToken;
   msgChain = msgChain.catch(() => {}).then(async () => {
     if (token !== runToken) return; // 本轮已停止/重置，丢弃残留消息
     if (action === 'start' && lastSpeechDoneAt) {
-      const wait = SPEECH_HOLD_MS - (Date.now() - lastSpeechDoneAt);
+      // 开启语音播报沿用 30 秒节奏；未开启时按上一条的自然阅读时长推进
+      const holdMs = ttsToggle.checked ? SPEECH_HOLD_MS : lastSpeechHoldMs;
+      const wait = holdMs - (Date.now() - lastSpeechDoneAt);
       if (wait > 0) await new Promise((r) => setTimeout(r, wait));
       if (token !== runToken) return;
     }
@@ -816,10 +827,11 @@ function onMessagePaced(action, data) {
   });
 }
 
-// 接管询问也按同样节奏：上一条发言展示满 30 秒后再弹出
+// 接管询问也按同样节奏：上一条发言展示结束后再弹出
 async function askTakeoverPaced(role, step) {
   if (lastSpeechDoneAt) {
-    const wait = SPEECH_HOLD_MS - (Date.now() - lastSpeechDoneAt);
+    const holdMs = ttsToggle.checked ? SPEECH_HOLD_MS : lastSpeechHoldMs;
+    const wait = holdMs - (Date.now() - lastSpeechDoneAt);
     if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   }
   return askTakeover(role, step);
@@ -940,6 +952,8 @@ function renderMessage(action, data) {
         recordCount.textContent = `${courtRecord.length} 条`;
         if (currentMeta.role === '书记员' && currentMeta.step === '开庭准备') playGavel();
         scheduleHideSpeech(roleKeyByName[currentMeta.role] || 'clerk', currentMeta.content);
+        // 记录本条的自然展示时长，供下一条发言排队使用
+        lastSpeechHoldMs = ttsToggle.checked ? SPEECH_HOLD_MS : naturalHoldMs(currentMeta.content);
       } else {
         const bubble = roleBubbles[roleKeyByName[currentMeta.role] || 'clerk'];
         if (bubble) bubble.classList.remove('show');
@@ -1194,3 +1208,4 @@ scene.classList.add('idle'); // 开庭前显示各角色作用标注
 if (location.hash === '#scene') {
   setTimeout(() => scene.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
 }
+
