@@ -56,6 +56,15 @@ const roleKeyByName = { '书记员': 'clerk', '原告/原告代理人': 'plainti
 
 // ---------- DOM ----------
 const chatLog = document.getElementById('chat-log');
+
+// ---------- 庭审记录自动滚动 ----------
+// 文字输出时自动把最新内容滚到可见位置；输出结束后不再强制滚动，用户可自由回看
+function followChatScroll() {
+  chatLog.scrollTop = chatLog.scrollHeight;
+  const rect = chatLog.getBoundingClientRect();
+  const overflow = rect.bottom - window.innerHeight + 8;
+  if (overflow > 0) window.scrollTo({ top: window.scrollY + overflow, behavior: 'instant' });
+}
 const chatEmpty = document.getElementById('chat-empty');
 const recordCount = document.getElementById('record-count');
 const scene = document.getElementById('scene');
@@ -906,7 +915,7 @@ function startTypewriter() {
       const partial = pendingFullText.slice(0, displayedChars);
       if (currentContent) currentContent.textContent = partial;
       if (currentMeta) updateSpeechText(roleKeyByName[currentMeta.role] || 'clerk', partial);
-      chatLog.scrollTop = chatLog.scrollHeight;
+      followChatScroll();
     } else {
       stopTypewriter();
       // 流已结束：文字自然打完后才收尾，绝不瞬间补全
@@ -920,7 +929,7 @@ function addSys(text) {
   el.className = 'sys';
   el.textContent = text;
   chatLog.appendChild(el);
-  chatLog.scrollTop = chatLog.scrollHeight;
+  followChatScroll();
 }
 
 function renderMessage(action, data) {
@@ -968,7 +977,7 @@ function renderMessage(action, data) {
     currentMsg.appendChild(avatar);
     currentMsg.appendChild(body);
     chatLog.appendChild(currentMsg);
-    chatLog.scrollTop = chatLog.scrollHeight;
+    followChatScroll();
 
     // 重置打字机状态：新发言从头开始逐字输出，避免残留上一条的进度
     stopTypewriter();
