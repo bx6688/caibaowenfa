@@ -470,19 +470,6 @@ body::after {
     border-radius: 50%;
 }
 
-.hero-ring::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 12px;
-    height: 12px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    background: var(--gold);
-    box-shadow: 0 0 24px rgba(176, 138, 79, 0.8);
-}
-
 .hero-inner {
     position: relative;
     z-index: 2;
@@ -1775,28 +1762,41 @@ body::after {
     }
 
     .hero-watermark {
-        font-size: 160px;
-        right: 2%;
-        opacity: 0.8;
+        font-size: 60vw;
+        right: auto;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.6;
     }
 
     .corgi-logo {
-        width: 132px;
-        height: 132px;
+        width: 120px;
+        height: 120px;
     }
 
     .welcome-text {
-        font-size: 30px;
+        font-size: 28px;
+        line-height: 1.3;
     }
 
     .hero-subtitle {
         letter-spacing: 0.08em;
         font-size: 12px;
+        white-space: normal;
+        overflow: visible;
+        max-width: 100%;
+        padding: 0 12px;
+        text-align: center;
+        line-height: 1.7;
     }
 
     .action-btn {
         padding: 12px 26px;
         font-size: 14px;
+        width: 80%;
+        max-width: 300px;
+        justify-content: center;
+        text-align: center;
     }
 
     .contracts-container,
@@ -2002,17 +2002,164 @@ textarea {
     .feature-court {
         flex-direction: column;
         align-items: flex-start;
-        gap: 14px;
-        padding: 18px 20px;
+        gap: 15px;
+        padding: 20px;
+        width: 90%;
+        margin: 0 auto;
+        box-sizing: border-box;
+    }
+
+    .feature-court-seal {
+        width: 50px;
+        height: 50px;
+        font-size: 22px;
+        margin-bottom: 4px;
+    }
+
+    .feature-court-text {
+        width: 100%;
+    }
+
+    .feature-court-text h3 {
+        font-size: 20px;
+    }
+
+    .feature-court-text p {
+        font-size: 13px;
+        line-height: 1.7;
     }
 
     .feature-court-tags {
         flex-direction: row;
         flex-wrap: wrap;
+        gap: 8px;
     }
 
     .feature-court-cta {
         width: 100%;
         text-align: center;
+        box-sizing: border-box;
+    }
+
+    html, body {
+        overflow-x: hidden;
+    }
+}
+
+/* ===== 移动端强制覆盖（384px 防留白/防换行/防溢出） ===== */
+@media screen and (max-width: 768px) {
+    html, body {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    /* 关键：解除整页锁死在 100vh 的裁剪，恢复纵向滚动 */
+    .container {
+        height: auto !important;
+        min-height: 100vh !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    /* 主容器撑满全屏，打破桌面端宽度限制 */
+    .container,
+    .main-content,
+    .hero-inner {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .main-content {
+        padding: 10px !important;
+    }
+
+    /* 主标题：缩小字号、英文不断词、正常换行不挤压 */
+    .welcome-text {
+        font-size: 24px !important;
+        line-height: 1.4 !important;
+        word-break: keep-all !important;
+        white-space: normal !important;
+    }
+
+    /* 「开启对话」按钮文字不换行 */
+    .action-btn {
+        white-space: nowrap !important;
+        min-width: 140px !important;
+        width: auto !important;
+        max-width: 300px !important;
+        padding: 10px 30px !important;
+        margin: 0 auto !important;
+    }
+
+    /* AI 模拟法庭卡片：解除高度限制，纵向流式排列 */
+    .feature-court {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        width: 92% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 auto !important;
+        padding: 20px 20px 30px !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+        gap: 15px !important;
+    }
+
+    /* 卡片内部所有子元素全宽、清除浮动、禁止被挤压 */
+    .feature-court > * {
+        width: 100% !important;
+        float: none !important;
+        flex-shrink: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 「庭」字印章：缩小并居中 */
+    .feature-court-seal {
+        width: 50px !important;
+        height: 50px !important;
+        min-width: 50px !important;
+        margin: 0 auto !important;
+        font-size: 20px !important;
+        flex: none !important;
+    }
+
+    .feature-court-text {
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    /* 标签组：换行并居中 */
+    .feature-court-tags {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+    }
+
+    /* 「进入庭审」按钮：静态流式、占满整行、沉到最底部 */
+    .feature-court-cta {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 20px 0 0 0 !important;
+        padding: 12px 0 !important;
+        height: auto !important;
+        min-height: 44px !important;
+        box-sizing: border-box !important;
+        text-align: center !important;
+        flex: none !important;
     }
 }

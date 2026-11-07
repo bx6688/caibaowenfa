@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>模拟法庭 · AI 庭审</title>
 <style>
 :root{
@@ -180,7 +180,7 @@ img{display:block;max-width:100%;}
 /* ---------- Speech bubbles ---------- */
 .speech{
   position:absolute;z-index:7;bottom:calc(100% + 10px);
-  left:50%;width:min(320px,50vw);
+  left:50%;width:min(320px,50vw);height:120px;
   transform:translate(-50%,10px);
   background:rgba(18,18,24,.96);
   border:1px solid rgba(255,255,255,.18);
@@ -195,6 +195,15 @@ img{display:block;max-width:100%;}
   transition:opacity .28s ease,transform .28s ease;
   pointer-events:none;
 }
+.speech.show{pointer-events:auto;}
+.speech .say{
+  display:block;
+  max-height:72px;
+  overflow-y:auto;
+  padding-right:4px;
+}
+.speech .say::-webkit-scrollbar{width:4px;}
+.speech .say::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25);border-radius:99px;}
 .speech.show{opacity:1;transform:translate(-50%,0);}
 .speech::after{
   content:"";position:absolute;bottom:-5px;left:50%;margin-left:-5px;
@@ -216,6 +225,14 @@ img{display:block;max-width:100%;}
 .spot-r .speech{left:auto;right:0;transform:translate(0,10px);}
 .spot-r .speech.show{transform:translate(0,0);}
 .spot-r .speech::after{left:80%;}
+/* 审判长位于顶部，气泡一律显示在人物与名牌下方，避免超出画面上缘 */
+#speech-judge{bottom:auto;top:calc(100% + 34px);}
+#speech-judge::after{
+  bottom:auto;top:-5px;
+  border-right:none;border-bottom:none;
+  border-left:1px solid rgba(255,255,255,.16);
+  border-top:1px solid rgba(255,255,255,.16);
+}
 .speech .who{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;margin-bottom:3px;opacity:.92;}
 .speech .say{white-space:pre-wrap;word-break:break-word;}
 .speech .d{
@@ -453,6 +470,8 @@ img{display:block;max-width:100%;}
 .mode-selection{
   display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;
 }
+/* 角色图例：仅移动端显示 */
+.role-legend{display:none;}
 .mode-card{
   flex:1 1 0;min-width:160px;
   background:#fafbfc;border:1.5px solid var(--line);
@@ -669,6 +688,210 @@ footer span{display:inline-block;border-top:1px solid var(--line);padding-top:16
 @media (prefers-reduced-motion:reduce){
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
 }
+
+/* ============================================================
+   移动端响应式适配（≤768px）
+   - 模式卡片纵向堆叠
+   - 法庭图 100% 自适应，名牌隐藏，改用下方图例
+   - 触控按钮最小高度 44px
+   ============================================================ */
+@media screen and (max-width:768px){
+  body{font-size:14px;padding:0 !important;overflow-x:hidden !important;}
+
+  /* 主容器撑满全屏，打破桌面端 1080px 限制 */
+  html,body{width:100% !important;margin:0 !important;}
+  .wrap{
+    width:100% !important;
+    max-width:100% !important;
+    padding:0 10px !important;
+    margin:0 auto !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 庭审设置模式卡片：强制纵向单列，杜绝重叠 */
+  .mode-selection{
+    display:flex !important;
+    flex-direction:column !important;
+    gap:12px !important;
+    width:100% !important;
+    padding:0 !important;
+  }
+  .mode-card{
+    width:100% !important;
+    max-width:100% !important;
+    margin:0 !important;
+    height:auto !important;
+    min-height:64px !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:flex-start !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 人物名牌防换行挤压 */
+  .figure .plate{white-space:nowrap;}
+
+  /* 停止庭审按钮：贴右下角并缩小，避免遮挡人物画面 */
+  #stop-btn{
+    position:absolute;right:10px;bottom:10px;
+    transform:scale(.85);transform-origin:right bottom;
+  }
+
+  /* 标题与正文 */
+  .intro{padding:22px 0 12px;}
+  .intro h1{font-size:22px;}
+  .intro p{font-size:13px;}
+  h2{font-size:16px;}
+  h3{font-size:14px;}
+
+  /* 顶栏精简 */
+  .topbar .wrap{height:54px;gap:8px;}
+  .brand-mark{width:28px;height:28px;font-size:14px;}
+  .brand-text{font-size:14px;}
+  .brand-text small{font-size:9px;}
+  .home-link{font-size:10px;padding:4px 9px;}
+
+  /* 舞台容器与图片 100% 自适应 */
+  .scene-card{padding:8px;border-radius:16px;}
+  .scene{
+    width:100%;height:auto;
+    aspect-ratio:4/3;
+    border-radius:12px;
+  }
+
+  /* 人物名牌：像桌面端一样标注在人物下方，缩小字号防止互相重叠 */
+  .figure .plate{
+    display:block;
+    font-size:8px;
+    letter-spacing:.02em;
+    padding:1px 5px;
+  }
+
+  /* 场景顶部信息条 */
+  .scene-top{left:10px;right:10px;top:10px;}
+  .ep{font-size:9.5px;padding:3px 8px;}
+  .scene-status{font-size:9.5px;max-width:60%;padding:3px 9px;}
+
+  /* 气泡：恢复原始模式，显示在人物上方（审判长例外，全局规则已设为下方）；固定尺寸，超长可滑动 */
+  .speech{
+    font-size:11px;line-height:1.5;padding:7px 9px;border-radius:10px;
+    width:min(200px,56vw);height:104px;
+  }
+  .speech .say{max-height:60px;}
+  .speech .who{font-size:10px;}
+
+  /* 底部控制条：元信息独占一行 */
+  .player{padding:18px 10px 10px;gap:7px;}
+  .player-meta{order:1;width:100%;font-size:10.5px;}
+  .ctrl{font-size:12px;padding:7px 12px;}
+  .ctrl-select{font-size:11px;padding:7px 10px;}
+
+  /* 模式选择卡片：纵向堆叠，图标与文字左右排列更紧凑 */
+  .mode-selection{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    width:100%;
+  }
+  .mode-card{
+    width:100%;
+    box-sizing:border-box;
+    min-width:0;
+    padding:11px 12px;
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+  }
+  .mode-card .mode-icon{
+    font-size:20px;
+    margin-bottom:0;
+    flex:0 0 auto;
+    line-height:1.2;
+  }
+  .mode-card h3{font-size:13.5px;margin-bottom:2px;}
+  .mode-card p{font-size:11.5px;}
+
+  /* 设置行与输入框 */
+  .setting-row{gap:10px;}
+  .console-role,.console-case{padding:12px 12px;}
+
+  /* 写下案情：输入框独占一行撑满，开庭按钮整行在其下方 */
+  .case-row{
+    flex-wrap:wrap !important;
+    gap:8px !important;
+    width:100% !important;
+    box-sizing:border-box !important;
+  }
+  .case-row input{
+    flex:1 1 100% !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    height:55px !important;
+    font-size:15px !important;
+    box-sizing:border-box !important;
+  }
+  .case-row input::placeholder{
+    white-space:normal;
+    font-size:12.5px;
+    line-height:1.4;
+  }
+  .enter-btn{
+    width:100% !important;
+    height:46px !important;
+    min-height:44px !important;
+    font-size:15px !important;
+    margin:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  /* 角色介绍面板 */
+  .char-info-body{padding:12px 13px;font-size:13px;}
+
+  /* 庭审记录 */
+  .chat{margin-top:18px;border-radius:16px;}
+  .chat-head{padding:12px 14px;}
+  .chat-log{height:280px;padding:13px;gap:12px;}
+  .chat-empty h4{font-size:13px;}
+  .chat-empty p{font-size:12px;}
+  .msg{max-width:94%;}
+  .bubble{font-size:14px;padding:9px 12px;}
+
+  /* 庭审流程：两列 */
+  .flow{margin:26px 0 6px;}
+  .flow-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .flow-card{padding:11px 12px;gap:10px;}
+  .flow-card .no{font-size:14px;}
+  .flow-txt h4{font-size:12.5px;}
+  .flow-txt p{font-size:10.5px;}
+
+  /* 移动端角色图例：名牌已恢复显示，图例不再展示 */
+  .role-legend{display:none;}
+
+  /* 接管面板：缩小内边距，适配小屏 */
+  .takeover-card{padding:16px 14px 14px;}
+  .takeover-title{font-size:14px;}
+  .takeover-hint{font-size:11px;}
+  .takeover-card textarea{height:90px;font-size:13px;}
+  .scene-takeover{padding:12px 13px 10px;width:92%;}
+  .scene-takeover h4{font-size:12px;}
+  .scene-takeover textarea{height:56px;font-size:12.5px;}
+  .scene-takeover .row{gap:6px;}
+
+  /* 触控优化：所有按钮/下拉 ≥ 44px，字号 ≥ 16px */
+  button,
+  select,
+  .enter-btn,
+  .ctrl,
+  .ctrl-select,
+  .mini-btn,
+  .ghost-btn,
+  .char-info-close{
+    min-height:44px;
+    font-size:15px;
+  }
+  .mini-btn,.ghost-btn{padding:9px 14px;}
+}
 </style>
 </head>
 <body>
@@ -707,12 +930,6 @@ footer span{display:inline-block;border-top:1px solid var(--line);padding-top:16
 
       <!-- 聚光灯（跟随当前发言角色） -->
       <div class="spotlight" id="spotlight"></div>
-
-      <!-- 法庭木桌 -->
-      <div class="court-table">
-        <div class="court-leg l"></div>
-        <div class="court-leg r"></div>
-      </div>
 
       <!-- 原告（含原告代理人） -->
       <button class="figure spot-l" type="button" data-role="plaintiff" aria-label="原告席（含原告代理人）"
@@ -760,6 +977,14 @@ footer span{display:inline-block;border-top:1px solid var(--line);padding-top:16
         <button class="ctrl primary" type="button" id="stop-btn" disabled><span class="ic">■</span>停止庭审</button>
         <div class="progress"><i id="progress-bar"></i></div>
       </div>
+    </div>
+
+    <!-- 移动端角色图例（避免图片上的名牌重叠） -->
+    <div class="role-legend" id="role-legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#3f6f96"></span>原告 / 原告代理人</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#8e6a26"></span>书记员</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#c24158"></span>审判长</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#2f9d76"></span>被告 / 被告代理人</div>
     </div>
 
     <!-- 角色介绍面板（点击角色时显示） -->
@@ -811,7 +1036,7 @@ footer span{display:inline-block;border-top:1px solid var(--line);padding-top:16
         <div class="case-info">
           <span class="console-label">写下案情</span>
           <div class="case-row">
-            <input id="case-input" type="text" placeholder="随便写，一两句话就行，比如：邻居半夜装修吵得我没法睡，我要告他" autocomplete="off" value="张三借给李四10万元，约定一个月还款。到期后李四拒绝还款。张三诉至法院。">
+            <input id="case-input" type="text" placeholder="请写下你的案情，一两句话就行，比如：邻居半夜装修吵得我没法睡，我要告他" autocomplete="off">
             <button class="enter-btn" type="button" id="start-btn">开 庭</button>
           </div>
         </div>
@@ -857,7 +1082,7 @@ footer span{display:inline-block;border-top:1px solid var(--line);padding-top:16
 
 <footer>
   <div class="wrap">
-    <span>案情由你自行设定，仅用于教学演练 · 语音输入需在 HTTPS 环境下使用。</span>
+    <span>案情由你自行设定，仅用于教学演练。</span>
   </div>
 </footer>
 

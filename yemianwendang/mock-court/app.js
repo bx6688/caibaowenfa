@@ -746,10 +746,11 @@ function showSpeechTyping(roleKey, roleName, takeover) {
   if (!bubble) return;
   Object.entries(roleBubbles).forEach(([k, b]) => {
     if (!b || k === roleKey) return;
-    // 开启语音播报时，其他角色的气泡保留到各自语音播完，不被新发言打断收起
-    if (voiceHold[k]) return;
+    // 新角色开始发言时，立即收起上一个角色的气泡并清空其文字
     clearTimeout(b._hideTimer);
     b.classList.remove('show', 'below');
+    b.querySelector('.say').textContent = '';
+    delete voiceHold[k];
   });
   const info = ROLES[roleKey] || { name: roleName, color: '#8a5a2b' };
   bubble.querySelector('.who').textContent = `${roleName}${takeover ? ' · 你' : ''}`;
@@ -846,17 +847,30 @@ let currentMeta = null;
 let typewriterTimer = null;
 let pendingFullText = '';
 let displayedChars = 0;
+let pendingDone = false; // 流已结束但文字仍在打字中
 const TYPE_SPEED = 130; // 每字间隔毫秒数（越大越慢）
 
 function stopTypewriter() {
   if (typewriterTimer) { clearInterval(typewriterTimer); typewriterTimer = null; }
 }
 
-function flushTypewriter() {
-  stopTypewriter();
-  if (currentContent && pendingFullText) currentContent.textContent = pendingFullText;
-  if (currentMeta) updateSpeechText(roleKeyByName[currentMeta.role] || 'clerk', pendingFullText);
-  chatLog.scrollTop = chatLog.scrollHeight;
+// 流结束且打字队列打完后，统一收尾：记录发言、安排气泡隐藏
+function finalizeCurrentMessage() {
+  if (currentMeta) {
+    if (currentMeta.content) {
+      courtRecord.push({ ...currentMeta });
+      recordCount.textContent = `${courtRecord.length} 条`;
+      if (currentMeta.role === '书记员' && currentMeta.step === '开庭准备') playGavel();
+      scheduleHideSpeech(roleKeyByName[currentMeta.role] || 'clerk', currentMeta.content);
+      // 记录本条的自然展示时长，供下一条发言排队使用
+      lastSpeechHoldMs = ttsToggle.checked ? SPEECH_HOLD_MS : naturalHoldMs(currentMeta.content);
+    } else {
+      const bubble = roleBubbles[roleKeyByName[currentMeta.role] || 'clerk'];
+      if (bubble) bubble.classList.remove('show');
+    }
+  }
+  currentMeta = null;
+  pendingDone = false;
 }
 
 function startTypewriter() {
@@ -870,6 +884,8 @@ function startTypewriter() {
       chatLog.scrollTop = chatLog.scrollHeight;
     } else {
       stopTypewriter();
+      // 流已结束：文字自然打完后才收尾，绝不瞬间补全
+      if (pendingDone) finalizeCurrentMessage();
     }
   }, TYPE_SPEED);
 }
@@ -929,6 +945,12 @@ function renderMessage(action, data) {
     chatLog.appendChild(currentMsg);
     chatLog.scrollTop = chatLog.scrollHeight;
 
+    // 重置打字机状态：新发言从头开始逐字输出，避免残留上一条的进度
+    stopTypewriter();
+    pendingFullText = '';
+    displayedChars = 0;
+    pendingDone = false;
+
     showSpeechTyping(roleKey, data.role, data.takeover);
 
     // 审判长开始宣判前落槌
@@ -944,22 +966,10 @@ function renderMessage(action, data) {
   }
 
   if (action === 'done') {
-    // 打字机追平剩余文字
-    flushTypewriter();
-    if (currentMeta) {
-      if (currentMeta.content) {
-        courtRecord.push({ ...currentMeta });
-        recordCount.textContent = `${courtRecord.length} 条`;
-        if (currentMeta.role === '书记员' && currentMeta.step === '开庭准备') playGavel();
-        scheduleHideSpeech(roleKeyByName[currentMeta.role] || 'clerk', currentMeta.content);
-        // 记录本条的自然展示时长，供下一条发言排队使用
-        lastSpeechHoldMs = ttsToggle.checked ? SPEECH_HOLD_MS : naturalHoldMs(currentMeta.content);
-      } else {
-        const bubble = roleBubbles[roleKeyByName[currentMeta.role] || 'clerk'];
-        if (bubble) bubble.classList.remove('show');
-      }
-    }
-    currentMeta = null;
+    // 流结束：不瞬间补全，标记后等打字队列自然打完再收尾
+    pendingDone = true;
+    if (!typewriterTimer) finalizeCurrentMessage();
+    return;
   }
 }
 
@@ -1208,4 +1218,3 @@ scene.classList.add('idle'); // 开庭前显示各角色作用标注
 if (location.hash === '#scene') {
   setTimeout(() => scene.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
 }
-
