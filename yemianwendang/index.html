@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>侧边菜单与对话框</title>
-    <link rel="stylesheet" href="styles.css?v=20261026b">
+    <title>财宝问法 · AI 法律助手</title>
+    <link rel="stylesheet" href="styles.css?v=20261109">
 </head>
 <body>
     <div class="container">
@@ -32,6 +32,7 @@
                 <ul class="menu-list">
                     <li><a href="contracts.html">合同审查</a></li>
                     <li><a href="litigation.html">诉状生成</a></li>
+                    <li><a href="mock-court/home.html">模拟法庭</a></li>
                 </ul>
             </div>
         </div>
@@ -46,13 +47,39 @@
             
             <!-- 首页中央内容 -->
             <div class="home-container">
-                <div class="logo-container">
-                    <img src="home-picture.jpg" alt="AI法律助手" class="corgi-logo" id="corgi-logo">
-                    <h1 class="welcome-text">欢迎使用财宝问法</h1>
+                <div class="hero-decor" aria-hidden="true">
+                    <span class="blob blob-1"></span>
+                    <span class="blob blob-2"></span>
+                    <span class="blob blob-3"></span>
+                    <span class="hero-ring"></span>
+                    <span class="hero-watermark">法</span>
                 </div>
-                <div class="action-buttons">
-                    <a href="dialog.html" class="action-btn start-dialog-btn">开启对话</a>
-                    <a href="#" class="action-btn get-app-btn">获取APP</a>
+                <div class="hero-inner">
+                    <div class="hero-badge">AI · 法律智能助手</div>
+                    <div class="logo-container">
+                        <img src="home-picture.jpg" alt="AI法律助手" class="corgi-logo" id="corgi-logo">
+                        <h1 class="welcome-text">欢迎使用财宝问法</h1>
+                        <p class="hero-subtitle">以法为尺<span class="dot">·</span>以智为翼<span class="dot">·</span>让法律服务触手可及</p>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="dialog.html" class="action-btn start-dialog-btn">开启对话</a>
+                    </div>
+
+                    <!-- 特色服务：模拟法庭 -->
+                    <a class="feature-court" href="mock-court/home.html">
+                        <span class="feature-court-glow" aria-hidden="true"></span>
+                        <div class="feature-court-seal">庭</div>
+                        <div class="feature-court-text">
+                            <div class="feature-court-eyebrow">特色服务 · FEATURED</div>
+                            <h3>AI 模拟法庭</h3>
+                            <p>多角色对抗、语音质证、当庭宣判，沉浸式体验一场真实庭审</p>
+                        </div>
+                        <div class="feature-court-tags">
+                            <span>多角色庭审</span>
+                            <span>实时语音</span>
+                        </div>
+                        <span class="feature-court-cta">进入庭审 →</span>
+                    </a>
                 </div>
             </div>
         </div>

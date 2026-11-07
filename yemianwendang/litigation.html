@@ -4,253 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>诉状生成 - AI法律助手</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* 诉状生成页面特定样式 */
-        .litigation-container {
-            padding: 20px;
-            height: calc(100vh - 60px);
-            overflow-y: auto;
-        }
-
-        .litigation-steps {
-            display: flex;
-            margin-bottom: 30px;
-            border-radius: 8px;
-            background-color: white;
-            padding: 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .step {
-            flex: 1;
-            text-align: center;
-            position: relative;
-        }
-
-        .step:not(:last-child):after {
-            content: '';
-            position: absolute;
-            top: 25px;
-            right: 0;
-            width: 100%;
-            height: 2px;
-            background-color: #e0e0e0;
-            z-index: 1;
-        }
-
-        .step-number {
-            width: 50px;
-            height: 50px;
-            line-height: 50px;
-            border-radius: 50%;
-            background-color: #e0e0e0;
-            color: #777;
-            margin: 0 auto 10px;
-            position: relative;
-            z-index: 2;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-
-        .step.active .step-number {
-            background-color: #3498db;
-            color: white;
-        }
-
-        .step.completed .step-number {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        .step-label {
-            font-size: 14px;
-            color: #777;
-        }
-
-        .step.active .step-label {
-            color: #3498db;
-            font-weight: bold;
-        }
-
-        .step.completed .step-label {
-            color: #2ecc71;
-        }
-
-        .form-section {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-section-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .form-row {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 0 -10px 15px;
-        }
-
-        .form-group {
-            flex: 1;
-            min-width: 250px;
-            padding: 0 10px;
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        .form-group textarea {
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .form-group .hint {
-            font-size: 12px;
-            color: #777;
-            margin-top: 5px;
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-        }
-
-        .btn-prev {
-            background-color: #f1f1f1;
-            color: #333;
-        }
-
-        .btn-prev:hover {
-            background-color: #e0e0e0;
-        }
-
-        .btn-next {
-            background-color: #3498db;
-            color: white;
-        }
-
-        .btn-next:hover {
-            background-color: #2980b9;
-        }
-
-        .btn-generate {
-            background-color: #2ecc71;
-            color: white;
-        }
-
-        .btn-generate:hover {
-            background-color: #27ae60;
-        }
-
-        .litigation-types {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .litigation-type {
-            background-color: #f9f9f9;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .litigation-type:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .litigation-type.selected {
-            border-color: #3498db;
-            background-color: #ebf5fb;
-        }
-
-        .litigation-icon {
-            font-size: 32px;
-            margin-bottom: 10px;
-            color: #3498db;
-        }
-
-        .litigation-name {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .litigation-desc {
-            font-size: 12px;
-            color: #777;
-        }
-
-        .preview-section {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .preview-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .preview-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .preview-content {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #333;
-        }
-
-        .preview-actions {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 15px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css?v=20261109">
 </head>
 <body>
     <div class="container">
@@ -278,6 +32,7 @@
                             <ul class="menu-list">
                                 <li><a href="contracts.html">合同审查</a></li>
                                 <li><a href="litigation.html" class="active">诉状生成</a></li>
+                                <li><a href="mock-court/home.html">模拟法庭</a></li>
                             </ul>
                         </div>
                     </div>
@@ -608,12 +363,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
     }
 
+    // 在预览区展示钢笔书写诉状的动画
+    function showWritingThinking() {
+        const previewContent = document.getElementById('preview-content');
+        if (!previewContent) return;
+        previewContent.innerHTML = `
+            <div class="agent-scene">
+                <svg class="writing-scene" viewBox="0 0 240 140" role="img" aria-label="AI 正在书写诉状">
+                    <defs>
+                        <linearGradient id="penInkGrad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0" stop-color="#1B3550"/>
+                            <stop offset="1" stop-color="#0E9C8C"/>
+                        </linearGradient>
+                        <linearGradient id="penBodyGrad" x1="0" y1="1" x2="0" y2="0">
+                            <stop offset="0" stop-color="#C6A15B"/>
+                            <stop offset="0.45" stop-color="#0B1B2E"/>
+                            <stop offset="1" stop-color="#14C7B0"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="8" y="4" width="224" height="132" rx="12" fill="#FFFDF8" stroke="rgba(198,161,91,0.4)"/>
+                    <rect x="26" y="22" width="84" height="6" rx="3" fill="rgba(11,27,46,0.28)"/>
+                    <line x1="26" y1="52" x2="214" y2="52" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="70" x2="214" y2="70" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="88" x2="214" y2="88" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="106" x2="214" y2="106" stroke="rgba(11,27,46,0.09)"/>
+                    <line class="ink-line" x1="28" y1="70" x2="204" y2="70" stroke="url(#penInkGrad)" stroke-width="2.2" stroke-linecap="round"/>
+                    <g class="pen-group">
+                        <line x1="0" y1="0" x2="0" y2="-52" stroke="url(#penBodyGrad)" stroke-width="7" stroke-linecap="round"/>
+                        <path d="M0 0 L-2.6 -9 L2.6 -9 Z" fill="#C6A15B"/>
+                        <line x1="0" y1="-52" x2="0" y2="-60" stroke="#0B1B2E" stroke-width="3" stroke-linecap="round"/>
+                    </g>
+                </svg>
+                <div class="loading-tip">AI 正在书写诉状，请稍候…</div>
+            </div>`;
+    }
+
     // 【生成诉状按钮】
     if (generateBtn) {
         generateBtn.addEventListener('click', function() {
             if(evtSource) evtSource.close();
             const previewContent = document.getElementById('preview-content');
-            previewContent.innerText = "AI正在生成诉状，请稍候...";
+            showWritingThinking();
 
             const params = new URLSearchParams();
             params.append("mode","workflow");
@@ -661,6 +451,12 @@ document.addEventListener('DOMContentLoaded', function() {
             };
 
         });
+    }
+
+    // 本地预览：?thinking-demo=1 时直接展示书写动画，不请求后端
+    if (new URLSearchParams(location.search).get('thinking-demo') === '1') {
+        updateSteps(5);
+        showWritingThinking();
     }
 });
 </script>

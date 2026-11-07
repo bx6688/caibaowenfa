@@ -4,113 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能对话 - AI法律助手</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* 对话页面特定样式 */
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 60px); /* 减去header高度 */
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .message {
-            max-width: 70%;
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            border-radius: 10px;
-            position: relative;
-        }
-
-        .message.received {
-            align-self: flex-start;
-            background-color: #f1f0f0;
-        }
-
-        .message.sent {
-            align-self: flex-end;
-            background-color: #3498db;
-            color: white;
-        }
-
-        .message-content {
-            margin-bottom: 5px;
-        }
-
-        .message-time {
-            font-size: 12px;
-            opacity: 0.7;
-            text-align: right;
-        }
-
-        .chat-input {
-            display: flex;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-top: 1px solid #eee;
-            align-items: center;
-        }
-
-        .chat-input input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            margin: 0 10px;
-            font-size: 14px;
-        }
-
-        /* 通用按钮样式 */
-        .chat-input button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .chat-input button:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-
-        /* 附件按钮 */
-        .attachment-btn {
-            color: #7f8c8d;
-        }
-
-        .paperclip-icon {
-            font-size: 18px;
-            transform: rotate(45deg);
-        }
-
-        /* 发送按钮 */
-        .send-btn {
-            background-color: #3498db !important;
-            color: white;
-        }
-
-        .paper-plane-icon {
-            font-size: 18px;
-        }
-
-        .loading-tip {
-            color: #888;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css?v=20261109">
 </head>
 <body>
     <div class="container">
@@ -138,6 +32,7 @@
                     <ul class="menu-list">
                         <li><a href="contracts.html">合同审查</a></li>
                         <li><a href="litigation.html">诉状生成</a></li>
+                        <li><a href="mock-court/home.html">模拟法庭</a></li>
                     </ul>
                 </div>
             </div>
@@ -219,6 +114,51 @@
             }
 
             /**
+             * Q版智能体思考动画的 HTML 片段
+             */
+            function thinkingStageHTML() {
+                return `<div class="thinking-stage">
+                    <svg class="bot-scene" viewBox="0 0 120 120" role="img" aria-label="智能体正在思考">
+                        <defs>
+                            <radialGradient id="botGlow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0" stop-color="#14C7B0" stop-opacity="0.35"/>
+                                <stop offset="1" stop-color="#14C7B0" stop-opacity="0"/>
+                            </radialGradient>
+                            <linearGradient id="botFaceGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0" stop-color="#1B3550"/>
+                                <stop offset="1" stop-color="#0B1B2E"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="60" cy="58" r="48" fill="url(#botGlow)" opacity="0.5"/>
+                        <g class="bot-orbit">
+                            <ellipse cx="60" cy="58" rx="44" ry="20" fill="none" stroke="rgba(198,161,91,0.5)" stroke-width="1.2" stroke-dasharray="4 7"/>
+                        </g>
+                        <g class="bot-thought">
+                            <circle class="s1" cx="95" cy="30" r="2.5" fill="rgba(20,199,176,0.6)"/>
+                            <circle class="s2" cx="102" cy="21" r="3.6" fill="rgba(198,161,91,0.6)"/>
+                            <circle class="s3" cx="109" cy="10" r="5.5" fill="#FFFDF8" stroke="rgba(198,161,91,0.55)"/>
+                        </g>
+                        <g class="bot">
+                            <rect x="42" y="88" width="36" height="24" rx="10" fill="#12283F"/>
+                            <rect x="50" y="94" width="20" height="12" rx="6" fill="rgba(20,199,176,0.16)" stroke="rgba(198,161,91,0.7)" stroke-width="1"/>
+                            <line x1="60" y1="30" x2="60" y2="15" stroke="#C6A15B" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle class="bot-antenna" cx="60" cy="12" r="3.6" fill="#C6A15B"/>
+                            <rect x="24" y="46" width="6" height="20" rx="3" fill="#0B1B2E"/>
+                            <rect x="90" y="46" width="6" height="20" rx="3" fill="#0B1B2E"/>
+                            <rect x="30" y="30" width="60" height="56" rx="20" fill="#12283F" stroke="rgba(198,161,91,0.45)" stroke-width="1.2"/>
+                            <rect x="35" y="35" width="50" height="46" rx="16" fill="url(#botFaceGrad)"/>
+                            <g class="bot-eyes">
+                                <rect x="43" y="50" width="11" height="9" rx="4.5" fill="#7FE3D6"/>
+                                <rect x="66" y="50" width="11" height="9" rx="4.5" fill="#7FE3D6"/>
+                            </g>
+                            <rect x="52" y="67" width="16" height="3" rx="1.5" fill="rgba(127,227,214,0.75)"/>
+                        </g>
+                    </svg>
+                    <div class="loading-tip">智能体正在思考中</div>
+                </div>`;
+            }
+
+            /**
              * 发送消息，SSE流式请求
              */
             async function sendMessage() {
@@ -255,19 +195,26 @@
                 chatMessages.appendChild(userEl);
                 messageInput.value = '';
 
-                // 渲染AI气泡 + loading提示
+                // 渲染AI气泡 + Q版律师思考动画
                 const aiEl = document.createElement('div');
-                aiEl.className = "message received";
+                aiEl.className = "message received thinking";
                 aiEl.innerHTML = `
                     <div class="message-content">
-                        <div class="loading-tip">智能体正在思考中...</div>
+                        ${thinkingStageHTML()}
                     </div>
                     <div class="message-time">${timeString}</div>
                 `;
                 chatMessages.appendChild(aiEl);
 
                 const aiContentDom = aiEl.querySelector('.message-content');
-                const loadingTipDom = aiEl.querySelector('.loading-tip');
+                let thinkingDone = false;
+                function finishThinking() {
+                    if (thinkingDone) return;
+                    thinkingDone = true;
+                    aiEl.classList.remove('thinking');
+                    const stage = aiEl.querySelector('.thinking-stage');
+                    if (stage) stage.remove();
+                }
                 chatMessages.scrollTop = chatMessages.scrollHeight;
 
                 let fileId = "";
@@ -276,6 +223,7 @@
                     try {
                         const uploadRes = await uploadFile(selectedAttachmentFile);
                         if (!uploadRes.ok) {
+                            finishThinking();
                             aiContentDom.innerText = `附件上传失败：${uploadRes.msg}`;
                             selectedAttachmentFile = null;
                             fileInput.value = '';
@@ -283,6 +231,7 @@
                         }
                         fileId = uploadRes.file_id;
                     } catch (err) {
+                        finishThinking();
                         aiContentDom.innerText = "附件上传网络异常";
                         selectedAttachmentFile = null;
                         fileInput.value = '';
@@ -310,6 +259,7 @@ evtSource.onmessage = (e) => {
         evtSource.close();
         selectedAttachmentFile = null;
         fileInput.value = '';
+        finishThinking();
         return;
     }
     try {
@@ -319,7 +269,7 @@ evtSource.onmessage = (e) => {
             if (obj.content.startsWith('{"msg_type":"generate_answer_finish"')) {
                 return;
             }
-            loadingTipDom.remove();
+            finishThinking();
             // 去重逻辑
             if (obj.content.startsWith(renderedText)) {
                 const newChunk = obj.content.slice(renderedText.length);
@@ -337,7 +287,7 @@ evtSource.onmessage = (e) => {
                     evtSource.close();
                     selectedAttachmentFile = null;
                     fileInput.value = '';
-                    loadingTipDom.remove();
+                    finishThinking();
                     aiContentDom.innerText += "请求出错";
                 };
             }
@@ -352,6 +302,14 @@ evtSource.onmessage = (e) => {
                         sendMessage();
                     }
                 });
+            }
+
+            // 本地预览：?thinking-demo=1 时直接展示思考动画，不请求后端
+            if (chatMessages && new URLSearchParams(location.search).get('thinking-demo') === '1') {
+                const demoEl = document.createElement('div');
+                demoEl.className = 'message received thinking';
+                demoEl.innerHTML = '<div class="message-content">' + thinkingStageHTML() + '</div><div class="message-time">—</div>';
+                chatMessages.appendChild(demoEl);
             }
 
             if (chatMessages) {

@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>模拟法庭 · AI 庭审</title>
+<style>
+:root{
+  --bg:#edf2f7;
+  --panel:#ffffff;
+  --panel-2:#f7fafd;
+  --ink:#1d2b3a;
+  --muted:#5f7286;
+  --line:rgba(29,43,58,.12);
+  --accent:#b3893c;
+  --accent-2:#d6b06a;
+  --accent-dark:#8e6a26;
+  --gold:#c9a04a;
+  --red:#c24158;
+  --green:#2f9d76;
+  --blue:#3f6f96;
+  --shadow:0 26px 64px rgba(24,45,72,.14);
+  --sans:"Noto Sans SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --serif:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","SimSun",serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -12%, rgba(64,110,150,.12), transparent 62%),
+    radial-gradient(ellipse 45% 40% at 90% 6%, rgba(201,160,74,.16), transparent 65%),
+    var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+img{display:block;max-width:100%;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:rgba(29,43,58,.16);border-radius:99px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:rgba(237,242,247,.9);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.topbar .wrap{height:60px;display:flex;align-items:center;gap:14px;}
+.brand{display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none;}
+.home-link{
+  font-size:11px;color:#45596e;border:1px solid var(--line);
+  background:#fff;padding:5px 12px;border-radius:999px;
+  transition:all .2s ease;white-space:nowrap;text-decoration:none;
+}
+.home-link:hover{border-color:rgba(179,137,60,.55);color:#9a7428;}
+.brand-mark{
+  width:32px;height:32px;background:linear-gradient(140deg,#2c4a6b,#16293e);color:#fff;
+  display:grid;place-items:center;border-radius:9px;
+  font-weight:700;font-size:15px;
+  box-shadow:0 6px 18px rgba(24,45,72,.26);
+}
+.brand-text{font-weight:700;font-size:16px;letter-spacing:.08em;}
+.brand-text small{display:block;font-size:10px;font-weight:400;letter-spacing:.18em;color:var(--muted);margin-top:-2px;}
+.topbar .spacer{margin-left:auto;}
+
+/* ---------- Intro ---------- */
+.intro{padding:32px 0 18px;text-align:center;}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;letter-spacing:.2em;color:#9a7428;
+  background:rgba(179,137,60,.10);border:1px solid rgba(179,137,60,.28);
+  padding:4px 13px;border-radius:999px;margin-bottom:16px;
+  box-shadow:inset 0 0 22px rgba(179,137,60,.08);
+}
+.intro h1{
+  font-size:clamp(26px,3.6vw,39px);font-weight:900;letter-spacing:.04em;line-height:1.26;
+  background:linear-gradient(100deg,#1b2f44 10%,#3f6f96 52%,#b3893c 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+}
+.intro p{margin-top:10px;font-size:13.5px;color:var(--muted);}
+.intro p b{color:#2b3d50;font-weight:600;}
+
+/* ---------- Scene ---------- */
+.scene-card{
+  background:linear-gradient(180deg,#ffffff,#f7fafd);
+  border:1px solid var(--line);
+  border-radius:22px;
+  padding:12px;
+  box-shadow:var(--shadow);
+}
+.scene{
+  position:relative;
+  aspect-ratio:16/9;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.07);
+  background:
+    linear-gradient(180deg,rgba(8,8,11,.30) 0%,rgba(8,8,11,.02) 26%,rgba(8,8,11,.18) 62%,rgba(8,8,11,.78) 100%),
+    url('assets/court-scene-v6.png') center/100% 100% no-repeat;
+  isolation:isolate;
+}
+.scene::after{
+  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 38%, transparent 62%, rgba(0,0,0,.42) 100%);
+}
+.scene-top{
+  position:absolute;left:16px;right:16px;top:14px;z-index:6;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  pointer-events:none;
+}
+.ep{
+  font-size:10.5px;letter-spacing:.16em;color:#ffb3c2;
+  background:rgba(255,45,85,.10);border:1px solid rgba(255,45,85,.32);
+  padding:4px 11px;border-radius:999px;
+  backdrop-filter:blur(6px);
+}
+.scene-status{
+  font-size:10.5px;letter-spacing:.06em;color:#e7edf4;
+  background:rgba(12,18,26,.72);border:1px solid rgba(255,255,255,.16);
+  padding:4px 12px;border-radius:999px;
+  backdrop-filter:blur(6px);
+  max-width:72%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.scene-status.live{border-color:rgba(232,178,104,.7);color:#ffe6bd;}
+.scene-status::before{
+  content:"";display:inline-block;width:6px;height:6px;border-radius:50%;
+  margin-right:6px;vertical-align:middle;background:#7d8898;
+}
+.scene-status.live::before{background:#f0c675;box-shadow:0 0 8px #f0c675;animation:livePulse 1.4s infinite;}
+
+/* ---------- Cast hotspots ---------- */
+.figure{
+  position:absolute;z-index:4;
+  background:transparent;border:1px solid transparent;border-radius:14px;
+  padding:0;cursor:pointer;
+  transition:border-color .22s ease,box-shadow .22s ease,background .22s ease;
+}
+.figure:hover{border-color:#fff;background:rgba(255,255,255,.06);box-shadow:0 0 0 2px rgba(255,255,255,.5),0 0 24px rgba(255,255,255,.25);}
+.figure:focus-visible{outline:2px solid var(--gold);outline-offset:3px;}
+/* 第一人称控辩模式下已选中的扮演角色（白边选择框） */
+.figure.role-selected{
+  border-color:#fff;
+  background:rgba(255,255,255,.08);
+  box-shadow:0 0 0 2px rgba(255,255,255,.6),0 0 30px rgba(255,255,255,.3);
+}
+.figure.role-selected .plate{background:rgba(255,255,255,.95);color:#1a1206;border-color:#fff;}
+.figure.role-selected .plate::after{content:" · 你";font-weight:600;}
+.figure.active{
+  border-color:rgba(255,45,85,.85);
+  background:rgba(255,45,85,.07);
+  box-shadow:0 0 0 2px rgba(255,45,85,.35),0 0 34px rgba(255,45,85,.3);
+}
+.figure.turn{
+  border-color:rgba(232,178,104,.9);
+  background:rgba(232,178,104,.06);
+  box-shadow:0 0 0 2px rgba(232,178,104,.4),0 0 42px rgba(232,178,104,.36);
+  animation:turnGlow 2s ease-in-out infinite;
+}
+.plate{
+  position:absolute;left:50%;top:var(--plate,72%);transform:translateX(-50%);z-index:2;
+  white-space:nowrap;
+  font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#fff;
+  background:rgba(8,8,11,.74);border:1px solid rgba(255,255,255,.22);
+  padding:2px 9px;border-radius:999px;
+  backdrop-filter:blur(6px);pointer-events:none;
+  text-shadow:0 1px 6px rgba(0,0,0,.8);
+}
+.figure.active .plate{background:rgba(255,45,85,.92);border-color:rgba(255,45,85,.92);}
+.figure.active .plate::after{content:" · 你";font-weight:600;}
+.figure.turn .plate{background:rgba(232,178,104,.92);border-color:rgba(232,178,104,.92);color:#1a1206;}
+
+.scene.idle .plate{opacity:.92;}
+
+/* ---------- Speech bubbles ---------- */
+.speech{
+  position:absolute;z-index:7;bottom:calc(100% + 10px);
+  left:50%;width:min(320px,50vw);
+  transform:translate(-50%,10px);
+  background:rgba(18,18,24,.96);
+  border:1px solid rgba(255,255,255,.18);
+  border-radius:12px;padding:10px 13px;
+  font-size:13px;line-height:1.7;color:#fbf8f2;
+  font-weight:500;letter-spacing:.02em;
+  text-shadow:0 1px 2px rgba(0,0,0,.6);
+  text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;
+  backdrop-filter:blur(12px);
+  box-shadow:0 16px 34px rgba(0,0,0,.6);
+  opacity:0;
+  transition:opacity .28s ease,transform .28s ease;
+  pointer-events:none;
+}
+.speech.show{opacity:1;transform:translate(-50%,0);}
+.speech::after{
+  content:"";position:absolute;bottom:-5px;left:50%;margin-left:-5px;
+  width:10px;height:10px;
+  background:rgba(18,18,24,.94);
+  border-right:1px solid rgba(255,255,255,.16);
+  border-bottom:1px solid rgba(255,255,255,.16);
+  transform:rotate(45deg);
+}
+.speech.below{bottom:auto;top:calc(100% + 10px);}
+.speech.below::after{
+  bottom:auto;top:-5px;
+  border-right:none;border-bottom:none;
+  border-left:1px solid rgba(255,255,255,.16);border-top:1px solid rgba(255,255,255,.16);
+}
+.spot-l .speech{left:0;transform:translate(0,10px);}
+.spot-l .speech.show{transform:translate(0,0);}
+.spot-l .speech::after{left:20%;}
+.spot-r .speech{left:auto;right:0;transform:translate(0,10px);}
+.spot-r .speech.show{transform:translate(0,0);}
+.spot-r .speech::after{left:80%;}
+.speech .who{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;margin-bottom:3px;opacity:.92;}
+.speech .say{white-space:pre-wrap;word-break:break-word;}
+.speech .d{
+  display:inline-block;width:5px;height:5px;border-radius:50%;
+  background:#c9c3bb;margin-right:3px;animation:blink 1.2s infinite;
+}
+.speech .d:nth-child(2){animation-delay:.2s;}
+.speech .d:nth-child(3){animation-delay:.4s;}
+
+/* ---------- Courtroom table (CSS 木桌) ---------- */
+.court-table{
+  position:absolute;left:50%;bottom:8%;transform:translateX(-50%);
+  width:78%;height:18%;z-index:2;pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(120,78,42,.92) 0%,rgba(92,58,30,.95) 55%,rgba(70,42,20,.98) 100%);
+  border-radius:14px 14px 8px 8px;
+  box-shadow:
+    0 18px 40px rgba(0,0,0,.55),
+    inset 0 2px 0 rgba(255,220,170,.25),
+    inset 0 -3px 8px rgba(0,0,0,.4);
+}
+.court-table::before{
+  content:"";position:absolute;left:6%;right:6%;top:38%;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(255,220,170,.35),transparent);
+}
+.court-table::after{
+  content:"";position:absolute;left:0;right:0;top:0;height:6px;
+  background:linear-gradient(180deg,rgba(160,110,60,.7),transparent);
+  border-radius:14px 14px 0 0;
+}
+/* 桌腿 */
+.court-leg{
+  position:absolute;bottom:-34%;width:5%;height:40%;z-index:1;
+  background:linear-gradient(90deg,rgba(60,36,16,.9),rgba(90,56,28,.95),rgba(60,36,16,.9));
+  border-radius:0 0 4px 4px;
+  box-shadow:0 6px 14px rgba(0,0,0,.5);
+}
+.court-leg.l{left:12%;}
+.court-leg.r{right:12%;}
+
+/* ---------- Spotlight / dim effect ---------- */
+.figure{transition:filter .35s ease,opacity .35s ease;}
+.scene.dim-on .figure{filter:brightness(.45) saturate(.6);opacity:.55;}
+.scene.dim-on .figure.turn,
+.scene.dim-on .figure.active{filter:none;opacity:1;}
+.spotlight{
+  position:absolute;inset:0;z-index:3;pointer-events:none;opacity:0;
+  background:radial-gradient(circle at var(--sx,50%) var(--sy,50%), rgba(255,220,150,.18) 0%, rgba(255,220,150,.05) 22%, transparent 45%);
+  transition:opacity .4s ease,background .4s ease;
+  mix-blend-mode:screen;
+}
+.scene.dim-on .spotlight{opacity:1;}
+
+/* ---------- Inline scene takeover panel ---------- */
+.scene-takeover{
+  position:absolute;left:50%;bottom:20%;transform:translateX(-50%) translateY(12px);
+  z-index:9;width:min(520px,92%);
+  background:linear-gradient(180deg,rgba(20,20,26,.97),rgba(12,12,18,.97));
+  border:1px solid rgba(232,178,104,.5);
+  border-radius:14px;
+  padding:14px 16px 12px;
+  box-shadow:0 20px 50px rgba(0,0,0,.7),0 0 0 1px rgba(232,178,104,.15);
+  opacity:0;pointer-events:none;
+  transition:opacity .28s ease,transform .28s ease;
+  backdrop-filter:blur(10px);
+}
+.scene-takeover.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+.scene-takeover h4{
+  font-size:13px;color:#ffd98a;letter-spacing:.06em;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;
+}
+.scene-takeover h4 .dot{width:8px;height:8px;border-radius:50%;background:#ff2d55;box-shadow:0 0 8px #ff2d55;animation:livePulse 1.3s infinite;}
+.scene-takeover textarea{
+  width:100%;height:64px;resize:none;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);
+  border-radius:8px;color:#f6f2ec;padding:8px 10px;font-size:12.5px;line-height:1.6;
+  outline:none;font-family:inherit;
+}
+.scene-takeover textarea:focus{border-color:rgba(232,178,104,.7);box-shadow:0 0 0 2px rgba(232,178,104,.15);}
+.scene-takeover .row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+.scene-takeover button{
+  flex:1;min-width:90px;border:none;border-radius:8px;
+  padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;
+  transition:all .2s ease;font-family:inherit;
+}
+.scene-takeover .btn-ok{background:linear-gradient(135deg,#b8893a,#8a6420);color:#fff;}
+.scene-takeover .btn-ok:hover{filter:brightness(1.1);}
+.scene-takeover .btn-skip{background:rgba(255,255,255,.1);color:#cfc7d8;border:1px solid rgba(255,255,255,.18);}
+.scene-takeover .btn-skip:hover{background:rgba(255,255,255,.16);}
+.scene-takeover .btn-mic{background:rgba(255,45,85,.18);color:#ffb3c2;border:1px solid rgba(255,45,85,.4);flex:0 0 auto;}
+.scene-takeover .btn-mic.recording{background:#ff2d55;color:#fff;}
+
+/* ---------- Player control bar ---------- */
+.player{
+  position:absolute;left:0;right:0;bottom:0;z-index:8;
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  padding:30px 16px 16px;
+  background:linear-gradient(180deg,transparent,rgba(5,5,8,.9) 58%);
+}
+.player-meta{
+  display:flex;align-items:center;gap:8px;
+  font-size:11.5px;color:#cfc7d8;letter-spacing:.04em;
+  min-width:0;
+}
+.player-meta span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#6b6675;flex:none;}
+.live-dot.on{background:#ff2d55;box-shadow:0 0 0 4px rgba(255,45,85,.16);animation:livePulse 1.7s ease-in-out infinite;}
+.player .spacer{margin-left:auto;}
+.ctrl{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);
+  color:#f5f1ea;font-size:12px;font-weight:600;letter-spacing:.08em;
+  padding:7px 15px;border-radius:999px;cursor:pointer;
+  backdrop-filter:blur(8px);
+  transition:all .2s ease;white-space:nowrap;
+}
+.ctrl .ic{font-size:9px;opacity:.9;}
+.ctrl:hover:not(:disabled){border-color:rgba(255,45,85,.7);background:rgba(255,45,85,.16);color:#fff;}
+.ctrl.primary{
+  border:none;background:linear-gradient(135deg,#ff2d55,#d61c3d);
+  font-weight:700;color:#fff;
+  box-shadow:0 8px 22px rgba(225,29,72,.38);
+}
+.ctrl.primary:hover:not(:disabled){filter:brightness(1.08);}
+.ctrl:disabled{opacity:.32;cursor:not-allowed;box-shadow:none;filter:none;}
+.ctrl-select{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07);
+  color:#f5f1ea;font-size:11.5px;font-weight:600;
+  padding:7px 12px;border-radius:999px;cursor:pointer;
+  backdrop-filter:blur(8px);outline:none;
+}
+.ctrl-select:disabled{opacity:.32;cursor:not-allowed;}
+.ctrl-select option{color:#1d2b3a;background:#fff;}
+.progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.09);}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff2d55,#ff8a5c);transition:width .4s ease;}
+
+/* ---------- 角色介绍面板 ---------- */
+.char-info-panel{
+  margin-top:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:linear-gradient(180deg,#ffffff,#f7fafd);
+  overflow:hidden;
+  transition:all .3s ease;
+}
+.char-info-panel.hidden{display:none;}
+.char-info-header{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;
+  background:linear-gradient(135deg,#1a2738,#2c3e50);
+  color:#f5f1ea;
+}
+.char-info-role{font-size:16px;font-weight:700;letter-spacing:.06em;}
+.char-info-sub{font-size:11px;color:#a8b8c8;letter-spacing:.12em;text-transform:uppercase;}
+.char-info-close{
+  margin-left:auto;background:rgba(255,255,255,.12);border:none;color:#fff;
+  width:28px;height:28px;border-radius:50%;font-size:18px;line-height:1;
+  cursor:pointer;transition:background .2s ease;
+}
+.char-info-close:hover{background:rgba(255,45,85,.6);}
+.char-info-body{padding:14px 16px;color:#3a3a3a;font-size:13.5px;line-height:1.75;}
+.char-info-body p{margin:0 0 10px;}
+.char-info-body p:last-child{margin-bottom:0;}
+.char-info-body .tag{
+  display:inline-block;padding:2px 8px;border-radius:4px;
+  background:rgba(179,137,60,.12);color:#9a7428;
+  font-size:11px;font-weight:600;margin-right:6px;
+}
+
+/* ---------- Console（设置 + 写案情 + 开庭） ---------- */
+.console{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns:1fr;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:linear-gradient(180deg,#ffffff,#f7fafd);
+  overflow:hidden;
+}
+.console-role,.console-case{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;}
+.console-case{border-top:1px solid var(--line);}
+.step{
+  flex:0 0 24px;width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;margin-top:1px;
+  font-size:10.5px;font-weight:700;
+  color:#9a7428;background:rgba(179,137,60,.10);
+  border:1px solid rgba(179,137,60,.28);
+}
+.console-label{
+  display:block;margin-bottom:5px;
+  font-size:10px;letter-spacing:.16em;color:var(--muted);
+}
+.case-info{flex:1;min-width:0;}
+.case-row{display:flex;align-items:center;gap:10px;}
+.case-row input{
+  flex:1;min-width:0;height:40px;
+  border:1px solid var(--line);border-radius:10px;
+  background:#fff;color:#1d2b3a;
+  padding:0 14px;font-size:13px;outline:none;
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+.case-row input::placeholder{color:#98a5b4;}
+.case-row input:focus{border-color:rgba(64,110,150,.55);box-shadow:0 0 0 3px rgba(64,110,150,.12);}
+.case-row input:disabled{opacity:.45;cursor:not-allowed;}
+.enter-btn{
+  flex:0 0 auto;height:40px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:none;border-radius:10px;
+  background:linear-gradient(135deg,#b8893a,#8a6420);color:#fff;
+  font-size:13.5px;font-weight:700;letter-spacing:.1em;
+  padding:0 26px;cursor:pointer;
+  box-shadow:0 10px 24px rgba(138,100,32,.26);
+  transition:all .2s ease;white-space:nowrap;
+}
+.enter-btn:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-1px);}
+.enter-btn:active{transform:translateY(0);}
+.enter-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none;}
+
+.setting-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.switch-item{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:#45596e;cursor:pointer;white-space:nowrap;
+}
+.switch-item input[type="checkbox"]{accent-color:#b3893c;width:14px;height:14px;cursor:pointer;}
+.switch-hint{font-size:11px;color:#8a97a8;}
+.switch-item input[type="number"]{
+  width:44px;height:28px;border:1px solid var(--line);border-radius:8px;
+  background:#fff;text-align:center;font-size:12px;outline:none;
+}
+
+/* 模式选择卡片 */
+.mode-selection{
+  display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;
+}
+.mode-card{
+  flex:1 1 0;min-width:160px;
+  background:#fafbfc;border:1.5px solid var(--line);
+  border-radius:14px;padding:14px 15px;cursor:pointer;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+  position:relative;overflow:hidden;
+}
+.mode-card:hover{
+  border-color:#c9a96a;transform:translateY(-2px);
+  box-shadow:0 8px 22px rgba(179,137,60,.12);
+}
+.mode-card.active{
+  border-color:#b3893c;background:linear-gradient(145deg,#fff9ef 0%,#fff 100%);
+  box-shadow:0 10px 28px rgba(179,137,60,.22),0 0 0 3px rgba(179,137,60,.12);
+}
+.mode-card .mode-icon{font-size:26px;line-height:1;margin-bottom:6px;}
+.mode-card h3{font-size:14.5px;font-weight:700;color:#1a2633;margin:0 0 5px;letter-spacing:.01em;}
+.mode-card p{font-size:12px;line-height:1.55;color:#6b7c8d;margin:0;}
+.setting-actions{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+.mini-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  border:1px solid var(--line);background:#fff;color:#45596e;
+  font-size:11.5px;font-weight:600;
+  padding:6px 13px;border-radius:999px;cursor:pointer;
+  transition:all .2s ease;white-space:nowrap;
+}
+.mini-btn:hover:not(:disabled){border-color:rgba(179,137,60,.55);color:#9a7428;background:#fffdf7;}
+.mini-btn.primary{background:linear-gradient(135deg,#b8893a,#8a6420);border-color:transparent;color:#fff;box-shadow:0 6px 16px rgba(138,100,32,.24);}
+.mini-btn.primary:hover{filter:brightness(1.06);color:#fff;}
+.mini-btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* ---------- Chat ---------- */
+.chat{
+  margin-top:28px;
+  background:linear-gradient(180deg,#ffffff,#f7fafd);
+  border:1px solid var(--line);
+  border-radius:20px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.chat-head{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:14px 20px;border-bottom:1px solid var(--line);
+  background:#f7fafd;
+}
+.chat-title{font-size:14px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:9px;color:var(--ink);}
+.record-count{
+  font-size:10.5px;font-weight:600;letter-spacing:.04em;color:#9a7428;
+  background:rgba(179,137,60,.10);border:1px solid rgba(179,137,60,.24);
+  padding:1px 8px;border-radius:999px;
+}
+.chat-head .spacer{margin-left:auto;}
+.ghost-btn{
+  border:1px solid var(--line);background:#fff;color:#45596e;
+  font-size:11px;padding:5px 12px;border-radius:999px;cursor:pointer;
+  transition:all .2s ease;
+}
+.ghost-btn:hover{border-color:rgba(179,137,60,.55);color:var(--accent);}
+.chat-log{
+  height:390px;overflow-y:auto;
+  padding:20px 22px;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(179,137,60,.05), transparent 70%),
+    #f8fbfd;
+  display:flex;flex-direction:column;gap:14px;
+}
+.chat-empty{margin:auto;text-align:center;color:var(--muted);max-width:360px;}
+.chat-empty .icon{
+  width:54px;height:54px;margin:0 auto 12px;border-radius:16px;
+  background:#eef3f8;border:1px solid var(--line);
+  display:grid;place-items:center;font-size:22px;color:var(--accent);
+}
+.chat-empty h4{font-size:14px;color:var(--ink);margin-bottom:4px;font-weight:600;}
+.chat-empty p{font-size:12px;line-height:1.7;}
+
+.msg{display:flex;gap:10px;max-width:86%;}
+.msg.npc{align-self:flex-start;}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.avatar{
+  width:34px;height:34px;border-radius:10px;flex:0 0 34px;
+  display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;
+  box-shadow:0 6px 16px rgba(0,0,0,.35);
+}
+.msg .body{min-width:0;}
+.msg .meta{font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.msg.user .meta{justify-content:flex-end;}
+.msg .meta b{color:#2b3d50;font-weight:600;font-size:11.5px;}
+.step-tag{
+  font-size:10px;letter-spacing:.04em;color:#8d7a55;
+  background:#f7f0e1;border:1px solid rgba(179,137,60,.22);
+  padding:1px 7px;border-radius:999px;white-space:nowrap;
+}
+.msg.user .step-tag{color:#8a6420;background:#fff6e2;}
+.bubble{
+  background:#fff;border:1px solid var(--line);
+  padding:11px 15px;border-radius:12px;
+  font-size:15px;line-height:1.85;color:#1a2633;
+  font-weight:500;letter-spacing:.01em;
+  text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;
+  box-shadow:0 6px 16px rgba(24,45,72,.07);
+  white-space:pre-wrap;word-break:break-word;
+}
+.msg.user .bubble{
+  background:linear-gradient(135deg,rgba(179,137,60,.12),rgba(214,176,106,.10));
+  border-color:rgba(179,137,60,.26);color:#6d5320;
+}
+.loading-dots{color:#9aa7b6;letter-spacing:.08em;}
+.loading-dots::after{content:"…";animation:dots 1.4s steps(3,end) infinite;}
+.sys{
+  align-self:center;font-size:11px;color:var(--muted);
+  background:#eef3f8;border:1px solid var(--line);
+  padding:4px 12px;border-radius:999px;max-width:90%;text-align:center;
+}
+
+/* ---------- Flow ---------- */
+.flow{margin:34px 0 8px;}
+.flow-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.flow-head h2{font-size:16px;font-weight:700;letter-spacing:.1em;color:var(--ink);}
+.flow-head .flow-line{flex:1;height:1px;background:var(--line);}
+.flow-head .flow-en{font-size:10px;letter-spacing:.18em;color:var(--muted);}
+.flow-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.flow-card{
+  display:flex;align-items:center;gap:13px;
+  background:#fff;
+  border:1px solid var(--line);border-radius:12px;
+  padding:13px 16px;position:relative;overflow:hidden;
+  transition:border-color .2s ease,transform .2s ease,background .2s ease;
+}
+.flow-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:rgba(29,43,58,.12);transition:background .2s ease;}
+.flow-card:hover{border-color:rgba(179,137,60,.35);transform:translateY(-2px);background:#fffdf7;}
+.flow-card:hover::before{background:var(--accent);}
+.flow-card .no{flex:0 0 auto;font-size:15px;font-weight:800;letter-spacing:.02em;color:var(--accent);}
+.flow-txt{min-width:0;}
+.flow-txt h4{font-size:13px;font-weight:700;letter-spacing:.06em;color:var(--ink);}
+.flow-txt p{font-size:11px;color:var(--muted);margin-top:2px;letter-spacing:.04em;}
+
+/* ---------- Footer ---------- */
+footer{padding:0 0 40px;text-align:center;font-size:11.5px;color:#7d8c9c;line-height:1.9;}
+footer span{display:inline-block;border-top:1px solid var(--line);padding-top:16px;margin-top:8px;}
+
+/* ---------- Takeover modal ---------- */
+.takeover-wrap{
+  position:fixed;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  background:rgba(10,16,24,.48);
+  backdrop-filter:blur(5px);
+}
+.takeover-card{
+  width:min(560px,100%);
+  background:linear-gradient(180deg,#ffffff,#f8fafc);
+  border:1px solid rgba(179,137,60,.28);
+  border-radius:18px;
+  box-shadow:0 30px 80px rgba(10,20,35,.36);
+  padding:22px 22px 18px;
+  animation:cardIn .28s ease;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.98);}to{opacity:1;transform:none;}}
+.takeover-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;}
+.takeover-title{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:.03em;}
+.takeover-title span{color:#9a7428;}
+.takeover-hint{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.6;}
+.takeover-card textarea{
+  width:100%;height:110px;resize:vertical;
+  border:1px solid var(--line);border-radius:10px;
+  background:#fff;padding:11px 13px;
+  font-size:13px;line-height:1.7;color:var(--ink);outline:none;
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+.takeover-card textarea:focus{border-color:rgba(179,137,60,.65);box-shadow:0 0 0 3px rgba(179,137,60,.12);}
+.takeover-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.mini-btn.recording{border-color:rgba(255,45,85,.65);color:#c81e46;background:#fff5f7;}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);
+  background:#16283a;color:#fff;font-size:12.5px;
+  border:1px solid rgba(179,137,60,.45);
+  padding:10px 18px;border-radius:999px;
+  box-shadow:0 14px 34px rgba(0,0,0,.55);
+  opacity:0;pointer-events:none;transition:all .3s ease;z-index:90;
+  max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ---------- Animations ---------- */
+@keyframes blink{0%,80%,100%{opacity:.25;transform:translateY(0);}40%{opacity:1;transform:translateY(-2px);}}
+@keyframes livePulse{0%,100%{opacity:1;}50%{opacity:.45;}}
+@keyframes turnGlow{0%,100%{box-shadow:0 0 0 2px var(--gold),0 0 26px rgba(232,178,104,.35);}50%{box-shadow:0 0 0 2px var(--gold),0 0 44px rgba(232,178,104,.6);}}
+@keyframes dots{0%{content:"";}33%{content:".";}66%{content:"..";}100%{content:"...";}}
+
+@media (max-width:820px){
+  .wrap{padding:0 12px;}
+  .intro{padding:28px 0 14px;}
+  .scene{aspect-ratio:16/9;}
+  .speech{font-size:10px;line-height:1.45;padding:6px 8px;border-radius:10px;width:min(240px,58vw);}
+  .plate{font-size:9.5px;padding:2px 7px;letter-spacing:.06em;}
+  .scene-status{font-size:9.5px;max-width:58%;padding:3px 9px;}
+  .player{padding:22px 12px 12px;gap:7px;}
+  .player-meta{order:1;width:100%;font-size:10.5px;}
+  .ctrl{font-size:11px;padding:7px 12px;}
+  .ctrl-select{font-size:10.5px;padding:7px 9px;}
+  .flow-grid{grid-template-columns:repeat(2,1fr);}
+  .scene-card{padding:8px;border-radius:18px;}
+  .console-role,.console-case{padding:12px 13px;}
+  .case-row{flex-wrap:wrap;}
+  .case-row input{flex:1 1 100%;}
+  .enter-btn{width:100%;}
+  .chat{margin-top:20px;border-radius:16px;}
+  .chat-log{height:320px;padding:14px;gap:12px;}
+  .msg{max-width:94%;}
+  .takeover-card{padding:18px 16px 15px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= TOP BAR ================= -->
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="brand-mark">法</span>
+      <span class="brand-text">模拟法庭<small>AI MOCK COURT</small></span>
+    </a>
+    <div class="spacer"></div>
+    <a class="home-link" href="../index.html">返回财宝问法</a>
+    <a class="home-link" href="#flow">庭审流程</a>
+  </div>
+</header>
+
+<!-- ================= INTRO ================= -->
+<section class="intro">
+  <div class="wrap">
+    <span class="eyebrow">AI 庭审演练 · 沉浸式角色扮演</span>
+    <h1>写下案情，AI 即刻开庭</h1>
+    <p>书记员、原告、被告、审判长按完整庭审流程自动演出发言；选择「第一人称控辩」或「动态实时接管」，你就能在庭审中亲自开口。</p>
+  </div>
+</section>
+
+<!-- ================= SCENE ================= -->
+<div class="wrap">
+
+  <div class="scene-card">
+    <div class="scene" id="scene">
+      <div class="scene-top">
+        <span class="ep">EP.01 · 庭审现场</span>
+        <span class="scene-status" id="scene-status">等待开庭 · 写下案情后点击「开庭」</span>
+      </div>
+
+      <!-- 聚光灯（跟随当前发言角色） -->
+      <div class="spotlight" id="spotlight"></div>
+
+      <!-- 法庭木桌 -->
+      <div class="court-table">
+        <div class="court-leg l"></div>
+        <div class="court-leg r"></div>
+      </div>
+
+      <!-- 原告（含原告代理人） -->
+      <button class="figure spot-l" type="button" data-role="plaintiff" aria-label="原告席（含原告代理人）"
+              style="left:0%;top:32%;width:24%;height:64%;--plate:50%">
+        <span class="speech" id="speech-plaintiff"><span class="who"></span><span class="say"></span></span>
+        <span class="plate">原告 / 原告代理人</span>
+      </button>
+
+      <!-- 书记员（审判长左侧就座） -->
+      <button class="figure" type="button" data-role="clerk" aria-label="书记员"
+              style="left:22%;top:34%;width:16%;height:40%;--plate:50%">
+        <span class="speech" id="speech-clerk"><span class="who"></span><span class="say"></span></span>
+        <span class="plate">书 记 员</span>
+      </button>
+
+      <!-- 审判长（居中独任） -->
+      <button class="figure" type="button" data-role="judge" aria-label="审判长"
+              style="left:43%;top:16%;width:18%;height:40%;--plate:108%">
+        <span class="speech" id="speech-judge"><span class="who"></span><span class="say"></span></span>
+        <span class="plate">审 判 长</span>
+      </button>
+
+      <!-- 被告（含被告代理人） -->
+      <button class="figure spot-r" type="button" data-role="defendant" aria-label="被告席（含被告代理人）"
+              style="left:73%;top:32%;width:27%;height:64%;--plate:50%">
+        <span class="speech" id="speech-defendant"><span class="who"></span><span class="say"></span></span>
+        <span class="plate">被告 / 被告代理人</span>
+      </button>
+
+      <!-- 场景内接管面板（替代弹窗，沉浸感更强） -->
+      <div class="scene-takeover" id="scene-takeover">
+        <h4><span class="dot"></span><span id="scene-takeover-title">现在由 角色 发言</span></h4>
+        <textarea id="scene-takeover-input" placeholder="替这位角色说出你想表达的内容…"></textarea>
+        <div class="row">
+          <button class="btn-ok" type="button" id="scene-takeover-confirm">确认发言</button>
+          <button class="btn-skip" type="button" id="scene-takeover-skip">跳过 · AI 生成</button>
+          <button class="btn-mic" type="button" id="scene-takeover-mic">🎤 语音</button>
+        </div>
+      </div>
+
+      <div class="player">
+        <span class="player-meta"><span class="live-dot" id="live-dot"></span><span id="turn-label">未开庭</span></span>
+        <div class="spacer"></div>
+        <button class="ctrl" type="button" id="interrupt-judge-btn" disabled><span class="ic">⚖</span>呼叫审判长</button>
+        <button class="ctrl primary" type="button" id="stop-btn" disabled><span class="ic">■</span>停止庭审</button>
+        <div class="progress"><i id="progress-bar"></i></div>
+      </div>
+    </div>
+
+    <!-- 角色介绍面板（点击角色时显示） -->
+    <div class="char-info-panel hidden" id="char-info-panel">
+      <div class="char-info-header">
+        <span class="char-info-role" id="char-info-role">审判长</span>
+        <span class="char-info-sub" id="char-info-sub">Judge</span>
+        <button class="char-info-close" type="button" id="char-info-close">×</button>
+      </div>
+      <div class="char-info-body" id="char-info-body">
+        <p>点击画面中的角色查看人物介绍。</p>
+      </div>
+    </div>
+
+    <div class="console">
+      <div class="console-role">
+        <span class="step">01</span>
+        <div class="case-info">
+          <span class="console-label">庭审设置</span>
+
+          <!-- 模式选择（三选一） -->
+          <div class="mode-selection" id="mode-selection">
+            <div class="mode-card active" data-mode="auto" onclick="selectMode('auto')">
+              <div class="mode-icon">🤖</div>
+              <h3>全维推演</h3>
+              <p>全自动庭审，您作为上帝视角观看 AI 角色自主辩论。</p>
+            </div>
+            <div class="mode-card" data-mode="role" onclick="selectMode('role')">
+              <div class="mode-icon">👤</div>
+              <h3>第一人称控辩</h3>
+              <p>点击画面中的角色选择你要扮演的角色，轮到该角色时由你亲自发言。</p>
+            </div>
+            <div class="mode-card" data-mode="interactive" onclick="selectMode('interactive')">
+              <div class="mode-icon">📢</div>
+              <h3>动态实时接管</h3>
+              <p>每个角色发言前都会询问你是否接管，选择接管即可替该角色发言。</p>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <label class="switch-item"><input type="checkbox" id="tts-toggle" checked> 语音播报</label>
+            <span class="switch-hint">开启后，角色文字将展示至该角色语音播报结束</span>
+            <label class="switch-item">辩论轮数 <input type="number" id="debate-rounds" value="1" min="0" max="3"> 轮</label>
+          </div>
+        </div>
+      </div>
+      <div class="console-case">
+        <span class="step">02</span>
+        <div class="case-info">
+          <span class="console-label">写下案情</span>
+          <div class="case-row">
+            <input id="case-input" type="text" placeholder="随便写，一两句话就行，比如：邻居半夜装修吵得我没法睡，我要告他" autocomplete="off" value="张三借给李四10万元，约定一个月还款。到期后李四拒绝还款。张三诉至法院。">
+            <button class="enter-btn" type="button" id="start-btn">开 庭</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CHAT ================= -->
+  <section class="chat" id="chat">
+    <div class="chat-head">
+      <span class="chat-title">庭审记录 <span class="record-count" id="record-count">0 条</span></span>
+      <div class="spacer"></div>
+      <button class="ghost-btn" type="button" id="export-btn">导出笔录</button>
+      <button class="ghost-btn" type="button" id="reset-btn">重置庭审</button>
+    </div>
+    <div class="chat-log" id="chat-log">
+      <div class="chat-empty" id="chat-empty">
+        <div class="icon">法</div>
+        <h4>庭审尚未开始</h4>
+        <p>写下案情后点击“开庭”。书记员、原告、被告、审判长会按开庭准备、法庭调查、举证质证、法庭辩论、评议宣判的顺序依次发言，台词同步出现在舞台气泡和庭审记录中。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FLOW ================= -->
+  <section class="flow" id="flow">
+    <div class="flow-head">
+      <h2>庭审流程</h2>
+      <span class="flow-line"></span>
+      <span class="flow-en">COURT PROCEDURE</span>
+    </div>
+    <div class="flow-grid">
+      <div class="flow-card"><div class="no">01</div><div class="flow-txt"><h4>开庭准备</h4><p>核对身份 · 宣布纪律</p></div></div>
+      <div class="flow-card"><div class="no">02</div><div class="flow-txt"><h4>法庭调查</h4><p>起诉书 · 答辩意见</p></div></div>
+      <div class="flow-card"><div class="no">03</div><div class="flow-txt"><h4>举证质证</h4><p>出示证据 · 交叉质证</p></div></div>
+      <div class="flow-card"><div class="no">04</div><div class="flow-txt"><h4>归纳焦点</h4><p>审判长归纳争议焦点</p></div></div>
+      <div class="flow-card"><div class="no">05</div><div class="flow-txt"><h4>法庭辩论</h4><p>围绕焦点多轮交锋</p></div></div>
+      <div class="flow-card"><div class="no">06</div><div class="flow-txt"><h4>评议宣判</h4><p>合议与当庭宣判</p></div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>案情由你自行设定，仅用于教学演练 · 语音输入需在 HTTPS 环境下使用。</span>
+  </div>
+</footer>
+
+<!-- ================= TAKEOVER ================= -->
+<div class="takeover-wrap" id="takeover-bar" style="display:none">
+  <div class="takeover-card">
+    <div class="takeover-head">
+      <span class="step">03</span>
+      <div>
+        <div class="takeover-title">现在由 <span id="takeover-role">角色</span> 发言</div>
+        <div class="takeover-hint">你可以替这位角色说出想表达的内容，或让 AI 继续生成。</div>
+      </div>
+    </div>
+    <textarea id="takeover-input" placeholder="输入你想说的话..."></textarea>
+    <div class="takeover-row">
+      <button class="mini-btn primary" type="button" id="takeover-confirm">确认接管</button>
+      <button class="mini-btn" type="button" id="takeover-skip">跳过 · AI 生成</button>
+      <button class="mini-btn" type="button" id="takeover-mic">🎤 语音输入</button>
+    </div>
+  </div>
+</div>
+
+<audio id="gavel-sound" src="sounds/gavel.mp3" preload="auto"></audio>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -4,268 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>合同审查 - AI法律助手</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* 合同审查页面特定样式 */
-        .contracts-container {
-            padding: 20px;
-            height: calc(100vh - 60px);
-            overflow-y: auto;
-        }
-
-        .upload-section {
-            background-color: white;
-            border-radius: 10px;
-            padding: 30px;
-            text-align: center;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            color: #3498db;
-            margin-bottom: 15px;
-        }
-
-        .upload-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .upload-description {
-            color: #777;
-            margin-bottom: 20px;
-        }
-
-        .upload-btn {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .upload-btn:hover {
-            background-color: #2980b9;
-        }
-
-        .contract-templates {
-            margin-top: 30px;
-        }
-
-        .templates-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .templates-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .template-item {
-            background-color: white;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .template-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .template-icon {
-            font-size: 36px;
-            color: #3498db;
-            margin-bottom: 10px;
-        }
-
-        .template-name {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .template-description {
-            font-size: 12px;
-            color: #777;
-        }
-
-        .recent-contracts {
-            margin-top: 30px;
-        }
-
-        .recent-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .contract-item {
-            background-color: white;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .contract-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .contract-icon {
-            font-size: 24px;
-            color: #3498db;
-            margin-right: 15px;
-        }
-
-        .contract-info {
-            flex: 1;
-        }
-
-        .contract-name {
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .contract-date {
-            font-size: 12px;
-            color: #777;
-        }
-
-        .contract-status {
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-
-        .status-completed {
-            background-color: #e8f8f5;
-            color: #27ae60;
-        }
-
-        .status-reviewing {
-            background-color: #fef9e7;
-            color: #f39c12;
-        }
-
-        .status-issues {
-            background-color: #fdedec;
-            color: #e74c3c;
-        }
-
-        /* 审查结果操作按钮与文件预览 */
-        .result-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-        }
-
-        .result-btn {
-            padding: 7px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #fff;
-            transition: background-color 0.2s;
-        }
-
-        .preview-btn {
-            background-color: #27ae60;
-        }
-
-        .preview-btn:hover {
-            background-color: #219150;
-        }
-
-        .download-btn {
-            background-color: #3498db;
-        }
-
-        .download-btn:hover {
-            background-color: #2980b9;
-        }
-
-        .file-preview {
-            margin-top: 15px;
-            border: 1px solid #e1e8ed;
-            border-radius: 8px;
-            background-color: #fafbfc;
-            padding: 10px;
-        }
-
-        .file-preview iframe {
-            width: 100%;
-            height: 600px;
-            border: none;
-            border-radius: 6px;
-            background-color: #fff;
-        }
-
-        .file-preview img {
-            display: block;
-            max-width: 100%;
-            margin: 0 auto;
-        }
-
-        .file-preview pre {
-            margin: 0;
-            max-height: 600px;
-            overflow: auto;
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .docx-preview-wrapper {
-            max-height: 600px;
-            overflow: auto;
-            padding: 10px;
-            background-color: #fff;
-        }
-
-        .preview-tip {
-            padding: 30px 10px;
-            color: #777;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .templates-hint {
-            margin: -8px 0 15px;
-            color: #777;
-            font-size: 12px;
-        }
-
-        .template-item.selected {
-            border: 2px solid #3498db;
-            background-color: #eaf4fd;
-            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.25);
-        }
-
-        .recent-empty {
-            padding: 12px 0;
-            color: #999;
-            font-size: 14px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css?v=20261109">
 </head>
 <body>
     <div class="container">
@@ -293,6 +32,7 @@
                     <ul class="menu-list">
                         <li><a href="contracts.html" class="active">合同审查</a></li>
                         <li><a href="litigation.html">诉状生成</a></li>
+                        <li><a href="mock-court/home.html">模拟法庭</a></li>
                     </ul>
                 </div>
             </div>
@@ -320,10 +60,8 @@
   <h3>审查结果</h3>
   <div id="contractResult" style="white-space:pre-wrap;min-height:120px;"></div>
   <div class="result-actions" id="resultActions" style="display:none;">
-    <button class="result-btn preview-btn" id="previewFileBtn">预览文件</button>
     <button class="result-btn download-btn" id="downloadFileBtn">下载文件</button>
   </div>
-  <div class="file-preview" id="filePreview" style="display:none;"></div>
 </div>
                 <!-- 选择合同模板 -->
                 <div class="contract-templates">
@@ -389,9 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const recentEmpty = document.getElementById('recentEmpty');
     const resultBox = document.getElementById('contractResult');
     const resultActions = document.getElementById('resultActions');
-    const previewFileBtn = document.getElementById('previewFileBtn');
     const downloadFileBtn = document.getElementById('downloadFileBtn');
-    const filePreview = document.getElementById('filePreview');
     let targetFileUrl = "";
     let selectedTemplate = "";
 
@@ -421,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 // 上传成功，调用合同审查同步接口
-                resultBox.innerText = "正在执行合同审查，请耐心等待...";
+                showReviewThinking("正在执行合同审查，请耐心等待...");
                 const checkResp = await fetch(`${baseUrl}/api/workflow/contract`, {
                     method:"POST",
                     headers:{
@@ -435,20 +171,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 const checkRes = await checkResp.json();
                 console.log("审查接口返回：", checkRes);
                 if(!checkResp.ok){
-                    resultBox.innerText = "审查失败："+(checkRes.error || "接口异常");
+                    const errMsg = checkRes.error?.msg || checkRes.error || checkRes.msg || "接口异常";
+                    resultBox.innerText = "审查失败：" + (typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg));
                     setRecordStatus(record, "审查失败", "status-issues");
                     return;
                 }
-// 解析外层字符串
-const dataObj = JSON.parse(checkRes.data);
-const fileUrl = dataObj.output;
+                // Coze业务异常（code非0时没有data字段）
+                if(checkRes.code && checkRes.code !== 0){
+                    resultBox.innerText = "审查失败：" + (checkRes.msg || "工作流执行失败");
+                    setRecordStatus(record, "审查失败", "status-issues");
+                    return;
+                }
+                // 解析外层字符串（兼容data为对象或缺失的情况）
+                let dataObj = {};
+                try {
+                    if (typeof checkRes.data === "string") {
+                        dataObj = JSON.parse(checkRes.data);
+                    } else if (checkRes.data && typeof checkRes.data === "object") {
+                        dataObj = checkRes.data;
+                    }
+                } catch (parseErr) {
+                    console.log("审查结果解析失败：", checkRes.data);
+                }
+                const fileUrl = dataObj.output;
 setRecordStatus(record, "审查完成", "status-completed");
 if(fileUrl){
     targetFileUrl = fileUrl;
-    resultBox.innerText = "✅ 合同审查完成，文件已生成，可预览或下载查看";
+    resultBox.innerText = "✅ 合同审查完成，文件已生成，可下载查看";
     resultActions.style.display = "flex";
-    filePreview.style.display = "none";
-    filePreview.innerHTML = "";
 }else{
     resultBox.innerText = "⚠️ 审查完成，但没有读取到生成文件链接";
 }
@@ -461,8 +211,38 @@ if(fileUrl){
     function resetResultActions() {
         targetFileUrl = "";
         resultActions.style.display = "none";
-        filePreview.style.display = "none";
-        filePreview.innerHTML = "";
+    }
+
+    // 在审查结果区展示放大镜逐行扫描合同的动画
+    function showReviewThinking(text) {
+        resultBox.innerHTML = `
+            <div class="agent-scene result-thinking">
+                <svg class="scan-scene" viewBox="0 0 240 140" role="img" aria-label="AI 正在审查合同">
+                    <defs>
+                        <radialGradient id="lensGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0" stop-color="#14C7B0" stop-opacity="0.35"/>
+                            <stop offset="1" stop-color="#14C7B0" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                    <rect x="8" y="4" width="224" height="132" rx="12" fill="#FFFDF8" stroke="rgba(198,161,91,0.4)"/>
+                    <rect x="26" y="22" width="76" height="6" rx="3" fill="rgba(11,27,46,0.28)"/>
+                    <rect x="26" y="36" width="110" height="3" rx="1.5" fill="rgba(11,27,46,0.08)"/>
+                    <line x1="26" y1="52" x2="214" y2="52" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="70" x2="214" y2="70" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="88" x2="214" y2="88" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="106" x2="214" y2="106" stroke="rgba(11,27,46,0.09)"/>
+                    <circle cx="204" cy="112" r="13" fill="none" stroke="rgba(198,161,91,0.45)" stroke-dasharray="3 3"/>
+                    <text x="204" y="116" text-anchor="middle" font-size="12" fill="rgba(198,161,91,0.85)" font-family="serif">审</text>
+                    <g class="scan-lens">
+                        <ellipse cx="0" cy="0" rx="30" ry="22" fill="url(#lensGlow)"/>
+                        <circle cx="0" cy="0" r="15" fill="rgba(20,199,176,0.10)" stroke="#0B1B2E" stroke-width="2.5"/>
+                        <circle cx="0" cy="0" r="10.5" fill="none" stroke="rgba(20,199,176,0.55)" stroke-width="1"/>
+                        <line x1="10.5" y1="10.5" x2="21" y2="21" stroke="#0B1B2E" stroke-width="5" stroke-linecap="round"/>
+                    </g>
+                </svg>
+                <div class="loading-tip"></div>
+            </div>`;
+        resultBox.querySelector('.loading-tip').textContent = text;
     }
 
     // 格式化当前时间
@@ -514,95 +294,69 @@ if(fileUrl){
         return index === -1 ? '' : name.slice(index + 1).toLowerCase();
     }
 
-    // 动态加载第三方预览脚本
-    function loadScript(src) {
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = src;
-            script.onload = resolve;
-            script.onerror = () => reject(new Error('脚本加载失败'));
-            document.head.appendChild(script);
-        });
+    // 将跨域文件链接转成本地代理链接，规避浏览器 CORS 限制
+    function getProxyUrl(url) {
+        if (!url) return '';
+        try {
+            const u = new URL(url, window.location.href);
+            // 同源链接无需代理
+            if (u.origin === window.location.origin) return url;
+        } catch (e) {
+            // 相对路径直接返回
+            if (!/^https?:\/\//i.test(url)) return url;
+        }
+        return `${baseUrl}/api/file-proxy?url=${encodeURIComponent(url)}`;
     }
 
-    // 显示预览提示
-    function showPreviewTip(message) {
-        filePreview.innerHTML = '';
-        const tip = document.createElement('div');
-        tip.className = 'preview-tip';
-        tip.textContent = message;
-        filePreview.appendChild(tip);
-        filePreview.style.display = 'block';
+    // 根据 Content-Type 推断扩展名
+    function extFromMime(mime) {
+        const type = (mime || '').toLowerCase().split(';')[0].trim();
+        const map = {
+            'application/pdf': 'pdf',
+            'image/png': 'png',
+            'image/jpeg': 'jpg',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/bmp': 'bmp',
+            'image/svg+xml': 'svg',
+            'text/plain': 'txt',
+            'text/markdown': 'md',
+            'text/csv': 'csv',
+            'application/json': 'json',
+            'application/msword': 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx'
+        };
+        return map[type] || '';
     }
 
-    // 展示文件预览：PDF/图片/文本直接预览，Word 文档使用 docx-preview 渲染
-    async function showFilePreview(url) {
-        const ext = getFileExt(url);
-        filePreview.style.display = 'block';
-        filePreview.innerHTML = '<div class="preview-tip">正在加载预览...</div>';
-
-        if (ext === 'pdf') {
-            const iframe = document.createElement('iframe');
-            iframe.src = url;
-            filePreview.innerHTML = '';
-            filePreview.appendChild(iframe);
-            return;
+    // 结合链接扩展名、Content-Type 与文件头识别真实类型
+    async function detectFileExt(url, blob) {
+        const urlExt = getFileExt(url);
+        if (urlExt) return urlExt;
+        if (!blob) return '';
+        const mimeExt = extFromMime(blob.type);
+        if (mimeExt) return mimeExt;
+        try {
+            const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+            if (head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46) return 'pdf'; // %PDF
+            if (head[0] === 0x50 && head[1] === 0x4B) return 'docx'; // PK 压缩包（docx）
+            if (head[0] === 0x89 && head[1] === 0x50) return 'png';
+            if (head[0] === 0xFF && head[1] === 0xD8) return 'jpg';
+        } catch (e) {
+            // 识别失败时忽略
         }
-
-        if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) {
-            const img = document.createElement('img');
-            img.src = url;
-            img.alt = '合同审查结果预览';
-            filePreview.innerHTML = '';
-            filePreview.appendChild(img);
-            return;
-        }
-
-        if (['txt', 'md', 'json', 'csv', 'log', 'xml'].includes(ext)) {
-            try {
-                const resp = await fetch(url);
-                if (!resp.ok) throw new Error('文件读取失败');
-                const text = await resp.text();
-                const pre = document.createElement('pre');
-                pre.textContent = text;
-                filePreview.innerHTML = '';
-                filePreview.appendChild(pre);
-            } catch (e) {
-                showPreviewTip('该文件无法在线预览，请点击“下载文件”后查看。');
-            }
-            return;
-        }
-
-        if (['doc', 'docx'].includes(ext)) {
-            try {
-                if (!window.docx) {
-                    await loadScript('https://cdn.jsdelivr.net/npm/docx-preview/dist/docx-preview.min.js');
-                }
-                const resp = await fetch(url);
-                if (!resp.ok) throw new Error('文件读取失败');
-                const buffer = await resp.arrayBuffer();
-                const wrapper = document.createElement('div');
-                wrapper.className = 'docx-preview-wrapper';
-                filePreview.innerHTML = '';
-                filePreview.appendChild(wrapper);
-                await window.docx.renderAsync(buffer, wrapper);
-            } catch (e) {
-                showPreviewTip('该文件无法在线预览，请点击“下载文件”后查看。');
-            }
-            return;
-        }
-
-        showPreviewTip('该格式暂不支持在线预览，请点击“下载文件”后查看。');
+        return '';
     }
 
-    // 下载生成的文件
+    // 下载生成的文件，固定命名为“合同审查报告”
     async function downloadTargetFile() {
         if (!targetFileUrl) return;
-        const fileName = getFileName(targetFileUrl);
         try {
-            const resp = await fetch(targetFileUrl);
+            const resp = await fetch(getProxyUrl(targetFileUrl));
             if (!resp.ok) throw new Error('下载失败');
             const blob = await resp.blob();
+            const ext = await detectFileExt(targetFileUrl, blob);
+            const fileName = '合同审查报告' + (ext ? '.' + ext : '');
             const blobUrl = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = blobUrl;
@@ -617,10 +371,6 @@ if(fileUrl){
         }
     }
 
-    previewFileBtn.addEventListener('click', function() {
-        if (targetFileUrl) showFilePreview(targetFileUrl);
-    });
-
     downloadFileBtn.addEventListener('click', downloadTargetFile);
 
     // 选择合同模板（仅作前端标识，不传给后端）
@@ -631,6 +381,11 @@ if(fileUrl){
             selectedTemplate = this.querySelector('.template-name').textContent;
         });
     });
+
+    // 本地预览：?thinking-demo=1 时直接展示审查思考动画，不请求后端
+    if (resultBox && new URLSearchParams(location.search).get('thinking-demo') === '1') {
+        showReviewThinking("正在执行合同审查，请耐心等待...");
+    }
 });
 </script>
 </body>
