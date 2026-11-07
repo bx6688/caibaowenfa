@@ -1,5 +1,12 @@
 import { parseCozeSSE } from './sse-parser.js';
 
+// 清洗模型返回的文本：剔除不可见控制字符，并吃掉流末尾多出来的 } 或 "}（Coze 工作流纯文本节点偶发）
+function sanitizeText(text) {
+  let clean = String(text || '').replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, '');
+  clean = clean.replace(/\s*["']?\}\s*$/, '');
+  return clean;
+}
+
 const state = {
   caseText: '',
   conversations: {},
@@ -60,14 +67,15 @@ async function callBot(roleKey, prompt, onDelta) {
       if (event === 'error') {
         errorMsg = data.msg || 'Coze 请求失败';
       } else if (event === 'conversation.message.delta' && data.type === 'answer' && data.content) {
-        accumulated += data.content;
+        accumulated += sanitizeText(data.content);
         if (onDelta) onDelta(accumulated);
       } else if (event === 'conversation.message.completed' && data.type === 'answer' && !accumulated && data.content) {
-        accumulated = data.content;
+        accumulated = sanitizeText(data.content);
         if (onDelta) onDelta(accumulated);
       }
     });
 
+    accumulated = sanitizeText(accumulated); // 兜底：吃掉流末尾多出来的脏字符
     if (errorMsg) throw new Error(errorMsg);
     return accumulated;
   } catch (e) {
@@ -182,3 +190,4 @@ export async function runCourt({ caseText, onMessage, onAskTakeover, mode = 'aut
   // 阶段六：宣判
   await executeStep('judge', '评议与宣判', `【当前阶段：评议与宣判】\n请宣读判决结果及理由。\n{context}`);
 }
+
