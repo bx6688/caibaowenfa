@@ -236,6 +236,8 @@
                 <!-- 步骤5：预览与生成 (默认隐藏) -->
                 <div class="form-section" id="step-5" style="display: none;">
                     <div class="form-section-title">预览与生成</div>
+
+                    <div id="pleading-error" style="display:none;color:#b42318;background:#fef3f2;border:1px solid #fecdca;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;"></div>
                     
                     <div class="preview-section">
                         <div class="preview-header">
@@ -262,6 +264,7 @@
                     <div class="preview-actions">
                         <button class="btn btn-prev" id="step5-prev">上一步</button>
                         <button class="btn btn-generate" id="generate-btn">生成完整诉状</button>
+                        <button class="btn btn-generate" id="download-btn" style="display:none;">导出 Word 文档</button>
                     </div>
                 </div>
             </div>
@@ -269,10 +272,13 @@
     </div>
 
     <script src="script.js"></script>
-  <script>
+  <script type="module">
+import { parseSSE } from './mock-court/sse-parser.js';
+
 document.addEventListener('DOMContentLoaded', function() {
-    const baseUrl = "https://caibaowenfa.onrender.com";
-    let evtSource = null;
+    // 本地由 Node 后端同源托管页面，线上仍走 Render 后端
+    const isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].includes(location.hostname);
+    const baseUrl = isLocal ? '' : 'https://caibaowenfa.onrender.com';
 
     const steps = document.querySelectorAll('.step');
     const formSections = document.querySelectorAll('.form-section');
@@ -290,6 +296,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let currentStep = 1;
     let selectedLitigationType = "labor";
+
+    // 诉状流式预览状态
+    let receivedText = '';      // 后端返回的全部文本
+    let displayedText = '';     // 打字机当前已展示的文本
+    let pendingChars = '';      // 待展示的增量字符
+    let typingTimer = null;
+    let isGenerating = false;
 
     function updateSteps(newStep) {
         steps.forEach(step => {
@@ -398,58 +411,196 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
     }
 
+    // ---------- 诉状预览：打字机 / 错误提示 / Word 导出 ----------
+    function resetPreview() {
+        const previewContent = document.getElementById('preview-content');
+        receivedText = '';
+        displayedText = '';
+        pendingChars = '';
+        if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+        if (previewContent) {
+            previewContent.style.whiteSpace = 'pre-wrap';
+            previewContent.textContent = '';
+        }
+    }
+
+    function enqueueChars(chars) {
+        pendingChars += chars;
+        if (typingTimer) return;
+        typingTimer = setInterval(function () {
+            if (!pendingChars) {
+                clearInterval(typingTimer);
+                typingTimer = null;
+                return;
+            }
+            const previewContent = document.getElementById('preview-content');
+            if (!previewContent) return;
+            const take = pendingChars.slice(0, 2);
+            pendingChars = pendingChars.slice(2);
+            displayedText += take;
+            previewContent.textContent = displayedText;
+        }, 18);
+    }
+
+    function waitForTypingDone() {
+        return new Promise(function (resolve) {
+            const check = function () {
+                if (!pendingChars && !typingTimer) resolve();
+                else setTimeout(check, 40);
+            };
+            check();
+        });
+    }
+
+    function showError(message) {
+        const box = document.getElementById('pleading-error');
+        if (!box) return;
+        box.textContent = message;
+        box.style.display = 'block';
+    }
+
+    function hideError() {
+        const box = document.getElementById('pleading-error');
+        if (!box) return;
+        box.textContent = '';
+        box.style.display = 'none';
+    }
+
+    // 纯文本 → Word 可直接打开的 HTML（宋体、A4、大字号）
+    function buildWordHtml(text) {
+        const escapeHtml = function (s) {
+            return s.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        };
+
+        const body = text.replace(/\r/g, '').split('\n').map(function (line, index) {
+            const raw = line.trim();
+            if (!raw) return '<p>&nbsp;</p>';
+            const safe = escapeHtml(raw);
+            if (index === 0) {
+                return '<p style="text-align:center;font-size:22px;font-weight:bold;margin-bottom:18px;">' + safe + '</p>';
+            }
+            if (/^(具状人|日期)/.test(raw)) {
+                return '<p style="text-align:right;">' + safe + '</p>';
+            }
+            return '<p>' + safe + '</p>';
+        }).join('');
+
+        return '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+            'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
+            'xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8">' +
+            '<title>民事起诉状</title>' +
+            '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View>' +
+            '<w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->' +
+            '<style>@page{size:A4;margin:2.54cm 3.17cm;} ' +
+            'body{font-family:SimSun,serif;font-size:16px;line-height:1.9;color:#000;} ' +
+            'p{margin:0 0 6px 0;}</style></head><body>' + body + '</body></html>';
+    }
+
+    // 与页面文案对应的案由名称，避免把 labor 这类内部 key 直接喂给模型
+    const LAWSUIT_TYPE_LABELS = {
+        labor: '劳动争议',
+        contract: '合同纠纷',
+        property: '房产纠纷',
+        debt: '债务纠纷',
+        ip: '知识产权侵权纠纷',
+        divorce: '离婚纠纷'
+    };
+
     // 【生成诉状按钮】
     if (generateBtn) {
-        generateBtn.addEventListener('click', function() {
-            if(evtSource) evtSource.close();
+        generateBtn.addEventListener('click', async function() {
+            if (isGenerating) return;
+            hideError();
+
             const previewContent = document.getElementById('preview-content');
-            showWritingThinking();
-
-            const params = new URLSearchParams();
-            params.append("mode","workflow");
-            params.append("workflow_id","7702006222829436937");
-            params.append("lawsuit_type", selectedLitigationType);
-            params.append("plaintiff_type", document.getElementById('plaintiff-type').value||"");
-            params.append("plaintiff_name", document.getElementById('plaintiff-name').value||"");
-            params.append("plaintiff_address", document.getElementById('plaintiff-address').value||"");
-            params.append("plaintiff_phone", document.getElementById('plaintiff-phone').value||"");
-            params.append("defendant_type", document.getElementById('defendant-type').value||"");
-            params.append("defendant_name", document.getElementById('defendant-name').value||"");
-            params.append("defendant_address", document.getElementById('defendant-address').value||"");
-            params.append("defendant_phone", document.getElementById('defendant-phone').value||"");
-            params.append("case_content", document.getElementById('case-facts').value||"");
-            params.append("case_evidence", document.getElementById('case-evidence').value||"");
-            params.append("case_law_basis", document.getElementById('case-legal-basis').value||"");
-            params.append("claim_main", document.getElementById('litigation-requests').value||"");
-            params.append("claim_amount", document.getElementById('compensation-amount').value||"");
-            params.append("claim_other", document.getElementById('other-requests').value||"");
-
-            const url = `${baseUrl}/api/stream?${params.toString()}`;
-            evtSource = new EventSource(url);
-
-            evtSource.onmessage = (e) => {
-              if(e.data === "PING") return;
-              if(e.data === "[DONE]"){
-                evtSource.close();
-                return;
-              }
-              try{
-                const res = JSON.parse(e.data);
-                if(res.pleading_text){
-                  previewContent.innerHTML = `
-                    <div style="padding:20px;text-align:center;">
-                      <p style="font-size:16px;margin-bottom:16px;">✅ 诉状生成成功！</p>
-                      <a href="${res.pleading_text}" target="_blank" style="display:inline-block;padding:12px">
-                        点击下载民事起诉状（docx）
-                      </a>
-                    </div>
-                  `;
-                }
-              }catch(err){
-                previewContent.innerHTML = e.data;
-              }
+            const payload = {
+                lawsuit_type: LAWSUIT_TYPE_LABELS[selectedLitigationType] || selectedLitigationType,
+                plaintiff_type: document.getElementById('plaintiff-type').value || "",
+                plaintiff_name: document.getElementById('plaintiff-name').value || "",
+                plaintiff_address: document.getElementById('plaintiff-address').value || "",
+                plaintiff_phone: document.getElementById('plaintiff-phone').value || "",
+                defendant_type: document.getElementById('defendant-type').value || "",
+                defendant_name: document.getElementById('defendant-name').value || "",
+                defendant_address: document.getElementById('defendant-address').value || "",
+                defendant_phone: document.getElementById('defendant-phone').value || "",
+                case_content: document.getElementById('case-facts').value || "",
+                case_evidence: document.getElementById('case-evidence').value || "",
+                case_law_basis: document.getElementById('case-legal-basis').value || "",
+                claim_main: document.getElementById('litigation-requests').value || "",
+                claim_amount: document.getElementById('compensation-amount').value || "",
+                claim_other: document.getElementById('other-requests').value || ""
             };
 
+            isGenerating = true;
+            generateBtn.disabled = true;
+            generateBtn.textContent = '正在生成…';
+            if (downloadBtn) downloadBtn.style.display = 'none';
+
+            resetPreview();
+            showWritingThinking();
+
+            let streamError = '';
+
+            try {
+                const resp = await fetch(`${baseUrl}/api/legal/pleading`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // 参数校验失败（如“核心必填信息缺失”）返回 400 JSON，直接红字提示
+                if (!resp.ok) {
+                    let message = `生成失败（${resp.status}）`;
+                    try {
+                        const data = await resp.json();
+                        if (data && data.error) message = data.error;
+                    } catch (e) {}
+                    throw new Error(message);
+                }
+
+                await parseSSE(resp.body, function ({ data, done }) {
+                    if (done) return;
+                    if (data && data.error) { streamError = data.error; return; }
+                    if (data && data.content) {
+                        receivedText += data.content;
+                        enqueueChars(data.content);
+                    }
+                });
+
+                if (streamError) throw new Error(streamError);
+                await waitForTypingDone();
+                if (!receivedText.trim()) throw new Error('未收到有效内容，请重试');
+
+                if (downloadBtn) downloadBtn.style.display = 'inline-block';
+            } catch (error) {
+                pendingChars = '';
+                if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+                if (previewContent) previewContent.textContent = '';
+                showError(error.message || '生成失败，请稍后重试');
+            } finally {
+                isGenerating = false;
+                generateBtn.disabled = false;
+                generateBtn.textContent = receivedText.trim() ? '重新生成' : '生成完整诉状';
+            }
+        });
+    }
+
+    // 【导出 Word】纯文本包装成 .doc，Word 打开后为宋体、A4 排版
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+            if (!receivedText.trim()) return;
+            const blob = new Blob(['\ufeff', buildWordHtml(receivedText)], { type: 'application/msword' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '民事起诉状.doc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
         });
     }
 
