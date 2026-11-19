@@ -1,0 +1,89 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>财宝问法 · AI 法律助手</title>
+    <link rel="stylesheet" href="styles.css?v=20261116">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h3>AI助手</h3>
+            <button class="close-btn" id="close-sidebar">&times;</button>
+        </div>
+        <div class="sidebar-content">
+            <div class="menu-section">
+                <h4 class="section-title">首页</h4>
+                <ul class="menu-list">
+                    <li><a href="index.html" class="active">返回首页</a></li>
+                </ul>
+            </div>
+            <div class="menu-section">
+                <h4 class="section-title">对话功能</h4>
+                <ul class="menu-list">
+                    <li><a href="dialog.html">智能对话</a></li>
+                </ul>
+            </div>
+            <div class="menu-section">
+                <h4 class="section-title">专业服务</h4>
+                <ul class="menu-list">
+                    <li><a href="contracts.html">合同审查</a></li>
+                    <li><a href="litigation.html">诉状生成</a></li>
+                    <li><a href="mock-court/home.html">模拟法庭</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">&#9776;</button>
+                <h2>财宝问法</h2>
+            </div>
+            
+            <!-- 首页中央内容 -->
+            <div class="home-container">
+                <div class="hero-decor" aria-hidden="true">
+                    <span class="blob blob-1"></span>
+                    <span class="blob blob-2"></span>
+                    <span class="hero-ring"></span>
+                    <span class="hero-watermark">法</span>
+                </div>
+                <div class="hero-inner">
+                    <div class="hero-badge">AI · 法律智能助手</div>
+                    <div class="logo-container">
+                        <img src="home-picture.jpg" alt="AI法律助手" class="corgi-logo" id="corgi-logo">
+                        <h1 class="welcome-text">欢迎使用财宝问法</h1>
+                        <p class="hero-subtitle">以法为尺<span class="dot">·</span>以智为翼<span class="dot">·</span>让法律服务触手可及</p>
+                    </div>
+                    <div class="action-buttons">
+                        <a href="dialog.html" class="action-btn start-dialog-btn">开启对话</a>
+                    </div>
+
+                    <!-- 特色服务：模拟法庭 -->
+                    <a class="feature-court" href="mock-court/home.html">
+                        <span class="feature-court-glow" aria-hidden="true"></span>
+                        <div class="feature-court-seal">庭</div>
+                        <div class="feature-court-text">
+                            <div class="feature-court-eyebrow">特色服务 · FEATURED</div>
+                            <h3>AI 模拟法庭</h3>
+                            <p>多角色对抗、语音质证、当庭宣判，沉浸式体验一场真实庭审</p>
+                        </div>
+                        <div class="feature-court-tags">
+                            <span>多角色庭审</span>
+                            <span>实时语音</span>
+                        </div>
+                        <span class="feature-court-cta">进入庭审 →</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

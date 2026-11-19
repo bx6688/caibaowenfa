@@ -1,0 +1,392 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合同审查 - AI法律助手</title>
+    <link rel="stylesheet" href="styles.css?v=20261116">
+</head>
+<body>
+    <div class="container">
+        <!-- 左侧菜单栏 -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3>AI助手</h3>
+                <button class="close-btn" id="close-sidebar">&times;</button>
+            </div>
+            <div class="sidebar-content">
+                <div class="menu-section">
+                    <h4 class="section-title">首页</h4>
+                    <ul class="menu-list">
+                        <li><a href="index.html">返回首页</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">对话功能</h4>
+                    <ul class="menu-list">
+                        <li><a href="dialog.html">智能对话</a></li>
+                    </ul>
+                </div>
+                <div class="menu-section">
+                    <h4 class="section-title">专业服务</h4>
+                    <ul class="menu-list">
+                        <li><a href="contracts.html" class="active">合同审查</a></li>
+                        <li><a href="litigation.html">诉状生成</a></li>
+                        <li><a href="mock-court/home.html">模拟法庭</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主内容区域 -->
+        <div class="main-content" id="main-content">
+            <div class="header">
+                <button class="menu-btn" id="open-sidebar">&#9776;</button>
+                <h2>合同审查</h2>
+            </div>
+            
+            <!-- 合同审查内容 -->
+            <div class="contracts-container">
+                <!-- 上传区域 -->
+<div class="upload-section">
+  <div class="upload-icon"> 📄 </div>
+  <div class="upload-title">上传合同文件</div>
+  <div class="upload-description">支持PDF、Word、TXT等格式，文件大小不超过10MB</div>
+  <button class="upload-btn" id="upload-contract-btn">选择文件上传</button>
+</div>
+
+<!-- 在这里插入结果容器 -->
+<div class="form-section">
+  <h3>审查结果</h3>
+  <div id="contractResult" style="white-space:pre-wrap;min-height:120px;"></div>
+  <div class="result-actions" id="resultActions" style="display:none;">
+    <button class="result-btn download-btn" id="downloadFileBtn">下载文件</button>
+  </div>
+</div>
+                <!-- 选择合同模板 -->
+                <div class="contract-templates">
+                    <div class="templates-title">选择合同模板</div>
+                    <div class="templates-hint">请选择一个合同模板，并上传合同文件进行审查</div>
+                    <div class="templates-grid">
+                        <div class="template-item">
+                            <div class="template-icon">📝</div>
+                            <div class="template-name">劳动合同</div>
+                            <div class="template-description">标准劳动合同模板，符合最新劳动法规定</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">🏠</div>
+                            <div class="template-name">房屋租赁合同</div>
+                            <div class="template-description">住宅/商铺租赁协议，保障双方权益</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">🤝</div>
+                            <div class="template-name">购销合同</div>
+                            <div class="template-description">标准商品买卖合同，适用于各类交易</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">💼</div>
+                            <div class="template-name">服务外包合同</div>
+                            <div class="template-description">IT/咨询/设计等服务外包协议</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">🔒</div>
+                            <div class="template-name">保密协议</div>
+                            <div class="template-description">商业/技术信息保密协议(NDA)</div>
+                        </div>
+                        
+                        <div class="template-item">
+                            <div class="template-icon">📱</div>
+                            <div class="template-name">软件开发合同</div>
+                            <div class="template-description">定制软件开发及知识产权约定</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 最近审查的合同 -->
+                <div class="recent-contracts">
+                    <div class="recent-title">最近审查的合同</div>
+                    <div class="recent-empty" id="recentEmpty">暂无审查记录，上传合同后将自动记录在这里</div>
+                    <div id="recentList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const baseUrl = "https://caibaowenfa.onrender.com";
+
+    const uploadBtn = document.getElementById('upload-contract-btn');
+    const templateItems = document.querySelectorAll('.template-item');
+    const recentList = document.getElementById('recentList');
+    const recentEmpty = document.getElementById('recentEmpty');
+    const resultBox = document.getElementById('contractResult');
+    const resultActions = document.getElementById('resultActions');
+    const downloadFileBtn = document.getElementById('downloadFileBtn');
+    let targetFileUrl = "";
+    let selectedTemplate = "";
+
+    if (uploadBtn) {
+        uploadBtn.addEventListener('click', async function() {
+            if (!selectedTemplate) {
+                alert('请先选择合同模板，再上传合同文件');
+                return;
+            }
+            const fileInputDom = document.createElement('input');
+            fileInputDom.type = 'file';
+            fileInputDom.click();
+            fileInputDom.onchange = async e=>{
+                const f = e.target.files[0];
+                if(!f) return;
+                const record = addRecentRecord(f.name);
+                resetResultActions();
+                resultBox.innerText = "文件上传中...";
+                const formData = new FormData();
+                formData.append("file",f);
+                const uploadResp = await fetch(`${baseUrl}/api/upload-coze-file`,{method:"POST",body:formData});
+                const upJson = await uploadResp.json();
+                console.log("上传返回：", upJson);
+                if(!uploadResp.ok){
+                    resultBox.innerText = "上传失败："+(upJson.msg || "未知错误");
+                    setRecordStatus(record, "审查失败", "status-issues");
+                    return;
+                }
+                // 上传成功，调用合同审查同步接口
+                showReviewThinking("正在执行合同审查，请耐心等待...");
+                const checkResp = await fetch(`${baseUrl}/api/workflow/contract`, {
+                    method:"POST",
+                    headers:{
+                        "Content-Type":"application/json"
+                    },
+                    body:JSON.stringify({
+                        workflow_id:"7701991444680769578",
+                        file_id: upJson.file_id
+                    })
+                });
+                const checkRes = await checkResp.json();
+                console.log("审查接口返回：", checkRes);
+                if(!checkResp.ok){
+                    const errMsg = checkRes.error?.msg || checkRes.error || checkRes.msg || "接口异常";
+                    resultBox.innerText = "审查失败：" + (typeof errMsg === "string" ? errMsg : JSON.stringify(errMsg));
+                    setRecordStatus(record, "审查失败", "status-issues");
+                    return;
+                }
+                // Coze业务异常（code非0时没有data字段）
+                if(checkRes.code && checkRes.code !== 0){
+                    resultBox.innerText = "审查失败：" + (checkRes.msg || "工作流执行失败");
+                    setRecordStatus(record, "审查失败", "status-issues");
+                    return;
+                }
+                // 解析外层字符串（兼容data为对象或缺失的情况）
+                let dataObj = {};
+                try {
+                    if (typeof checkRes.data === "string") {
+                        dataObj = JSON.parse(checkRes.data);
+                    } else if (checkRes.data && typeof checkRes.data === "object") {
+                        dataObj = checkRes.data;
+                    }
+                } catch (parseErr) {
+                    console.log("审查结果解析失败：", checkRes.data);
+                }
+                const fileUrl = dataObj.output;
+setRecordStatus(record, "审查完成", "status-completed");
+if(fileUrl){
+    targetFileUrl = fileUrl;
+    resultBox.innerText = "✅ 合同审查完成，文件已生成，可下载查看";
+    resultActions.style.display = "flex";
+}else{
+    resultBox.innerText = "⚠️ 审查完成，但没有读取到生成文件链接";
+}
+
+            }
+        });
+    }
+
+    // 重置结果区操作状态
+    function resetResultActions() {
+        targetFileUrl = "";
+        resultActions.style.display = "none";
+    }
+
+    // 在审查结果区展示放大镜逐行扫描合同的动画
+    function showReviewThinking(text) {
+        resultBox.innerHTML = `
+            <div class="agent-scene result-thinking">
+                <svg class="scan-scene" viewBox="0 0 240 140" role="img" aria-label="AI 正在审查合同">
+                    <defs>
+                        <radialGradient id="lensGlow" cx="50%" cy="50%" r="50%">
+                            <stop offset="0" stop-color="#14C7B0" stop-opacity="0.35"/>
+                            <stop offset="1" stop-color="#14C7B0" stop-opacity="0"/>
+                        </radialGradient>
+                    </defs>
+                    <rect x="8" y="4" width="224" height="132" rx="12" fill="#FFFDF8" stroke="rgba(198,161,91,0.4)"/>
+                    <rect x="26" y="22" width="76" height="6" rx="3" fill="rgba(11,27,46,0.28)"/>
+                    <rect x="26" y="36" width="110" height="3" rx="1.5" fill="rgba(11,27,46,0.08)"/>
+                    <line x1="26" y1="52" x2="214" y2="52" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="70" x2="214" y2="70" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="88" x2="214" y2="88" stroke="rgba(11,27,46,0.09)"/>
+                    <line x1="26" y1="106" x2="214" y2="106" stroke="rgba(11,27,46,0.09)"/>
+                    <circle cx="204" cy="112" r="13" fill="none" stroke="rgba(198,161,91,0.45)" stroke-dasharray="3 3"/>
+                    <text x="204" y="116" text-anchor="middle" font-size="12" fill="rgba(198,161,91,0.85)" font-family="serif">审</text>
+                    <g class="scan-lens">
+                        <ellipse cx="0" cy="0" rx="30" ry="22" fill="url(#lensGlow)"/>
+                        <circle cx="0" cy="0" r="15" fill="rgba(20,199,176,0.10)" stroke="#0B1B2E" stroke-width="2.5"/>
+                        <circle cx="0" cy="0" r="10.5" fill="none" stroke="rgba(20,199,176,0.55)" stroke-width="1"/>
+                        <line x1="10.5" y1="10.5" x2="21" y2="21" stroke="#0B1B2E" stroke-width="5" stroke-linecap="round"/>
+                    </g>
+                </svg>
+                <div class="loading-tip"></div>
+            </div>`;
+        resultBox.querySelector('.loading-tip').textContent = text;
+    }
+
+    // 格式化当前时间
+    function formatNow() {
+        const now = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    }
+
+    // 在最近审查列表中新增一条记录
+    function addRecentRecord(fileName) {
+        if (recentEmpty) recentEmpty.style.display = 'none';
+        const item = document.createElement('div');
+        item.className = 'contract-item';
+        item.innerHTML = '<div class="contract-icon">📄</div>' +
+            '<div class="contract-info">' +
+            '<div class="contract-name"></div>' +
+            '<div class="contract-date"></div>' +
+            '</div>' +
+            '<div class="contract-status status-reviewing">审查中</div>';
+        item.querySelector('.contract-name').textContent = fileName;
+        item.querySelector('.contract-date').textContent = formatNow();
+        recentList.prepend(item);
+        return item;
+    }
+
+    // 更新记录状态
+    function setRecordStatus(item, text, className) {
+        const status = item.querySelector('.contract-status');
+        status.textContent = text;
+        status.className = 'contract-status ' + className;
+    }
+
+    // 从文件链接中提取文件名
+    function getFileName(url) {
+        try {
+            const pathname = new URL(url, window.location.href).pathname;
+            const name = decodeURIComponent(pathname.split('/').pop() || '');
+            return name || '合同审查结果';
+        } catch (e) {
+            return '合同审查结果';
+        }
+    }
+
+    // 获取文件扩展名
+    function getFileExt(url) {
+        const name = getFileName(url);
+        const index = name.lastIndexOf('.');
+        return index === -1 ? '' : name.slice(index + 1).toLowerCase();
+    }
+
+    // 将跨域文件链接转成本地代理链接，规避浏览器 CORS 限制
+    function getProxyUrl(url) {
+        if (!url) return '';
+        try {
+            const u = new URL(url, window.location.href);
+            // 同源链接无需代理
+            if (u.origin === window.location.origin) return url;
+        } catch (e) {
+            // 相对路径直接返回
+            if (!/^https?:\/\//i.test(url)) return url;
+        }
+        return `${baseUrl}/api/file-proxy?url=${encodeURIComponent(url)}`;
+    }
+
+    // 根据 Content-Type 推断扩展名
+    function extFromMime(mime) {
+        const type = (mime || '').toLowerCase().split(';')[0].trim();
+        const map = {
+            'application/pdf': 'pdf',
+            'image/png': 'png',
+            'image/jpeg': 'jpg',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/bmp': 'bmp',
+            'image/svg+xml': 'svg',
+            'text/plain': 'txt',
+            'text/markdown': 'md',
+            'text/csv': 'csv',
+            'application/json': 'json',
+            'application/msword': 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx'
+        };
+        return map[type] || '';
+    }
+
+    // 结合链接扩展名、Content-Type 与文件头识别真实类型
+    async function detectFileExt(url, blob) {
+        const urlExt = getFileExt(url);
+        if (urlExt) return urlExt;
+        if (!blob) return '';
+        const mimeExt = extFromMime(blob.type);
+        if (mimeExt) return mimeExt;
+        try {
+            const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+            if (head[0] === 0x25 && head[1] === 0x50 && head[2] === 0x44 && head[3] === 0x46) return 'pdf'; // %PDF
+            if (head[0] === 0x50 && head[1] === 0x4B) return 'docx'; // PK 压缩包（docx）
+            if (head[0] === 0x89 && head[1] === 0x50) return 'png';
+            if (head[0] === 0xFF && head[1] === 0xD8) return 'jpg';
+        } catch (e) {
+            // 识别失败时忽略
+        }
+        return '';
+    }
+
+    // 下载生成的文件，固定命名为“合同审查报告”
+    async function downloadTargetFile() {
+        if (!targetFileUrl) return;
+        try {
+            const resp = await fetch(getProxyUrl(targetFileUrl));
+            if (!resp.ok) throw new Error('下载失败');
+            const blob = await resp.blob();
+            const ext = await detectFileExt(targetFileUrl, blob);
+            const fileName = '合同审查报告' + (ext ? '.' + ext : '');
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        } catch (e) {
+            // 跨域受限时退化为在新窗口打开
+            window.open(targetFileUrl, '_blank');
+        }
+    }
+
+    downloadFileBtn.addEventListener('click', downloadTargetFile);
+
+    // 选择合同模板（仅作前端标识，不传给后端）
+    templateItems.forEach(item => {
+        item.addEventListener('click', function() {
+            templateItems.forEach(i => i.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedTemplate = this.querySelector('.template-name').textContent;
+        });
+    });
+
+    // 本地预览：?thinking-demo=1 时直接展示审查思考动画，不请求后端
+    if (resultBox && new URLSearchParams(location.search).get('thinking-demo') === '1') {
+        showReviewThinking("正在执行合同审查，请耐心等待...");
+    }
+});
+</script>
+</body>
+</html>
