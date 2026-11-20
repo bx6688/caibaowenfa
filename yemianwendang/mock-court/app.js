@@ -1,5 +1,5 @@
 import { runCourt, requestJudgeInterrupt, stopCourt } from './court-runner.js';
-import { parseCozeSSE } from './sse-parser.js';
+import { parseSSE } from './sse-parser.js';
 
 // ---------- 角色 ----------
 const ROLES = {
@@ -422,7 +422,7 @@ function playWithMediaSource(body, text) {
     audio.addEventListener('ended', finish, { once: true });
     audio.addEventListener('error', finish, { once: true });
 
-    parseCozeSSE(body, ({ data }) => {
+    parseSSE(body, ({ data }) => {
       if (data && data.audio) {
         chunks.push(base64ToBytes(data.audio));
         pump();
@@ -439,7 +439,7 @@ function playWithMediaSource(body, text) {
 
 async function playWithBlob(body, text) {
   const chunks = [];
-  await parseCozeSSE(body, ({ data }) => {
+  await parseSSE(body, ({ data }) => {
     if (data && data.audio) chunks.push(base64ToBytes(data.audio));
   });
   if (!chunks.length) return;
@@ -988,8 +988,10 @@ function renderMessage(action, data) {
   }
 
   if (action === 'update') {
-    pendingFullText = data.content;
-    if (currentMeta) currentMeta.content = data.content;
+    // 后端每次只推送增量字符：追加到打字机队列，避免整段覆盖或重复渲染
+    if (!data.content) return;
+    pendingFullText += data.content;
+    if (currentMeta) currentMeta.content += data.content;
     startTypewriter();
     return;
   }
@@ -1253,4 +1255,3 @@ scene.classList.add('idle'); // 开庭前显示各角色作用标注
 if (location.hash === '#scene') {
   setTimeout(() => scene.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
 }
-

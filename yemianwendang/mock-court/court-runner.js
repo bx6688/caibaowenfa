@@ -1,15 +1,12 @@
-import { parseCozeSSE } from './sse-parser.js';
+import { parseSSE } from './sse-parser.js';
 
-// 清洗模型返回的文本：剔除不可见控制字符，并吃掉流末尾多出来的 } 或 "}（Coze 工作流纯文本节点偶发）
+// 清洗模型返回的文本：剔除不可见控制字符，避免污染聊天记录与 TTS 文本
 function sanitizeText(text) {
-  let clean = String(text || '').replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, '');
-  clean = clean.replace(/\s*["']?\}\s*$/, '');
-  return clean;
+  return String(text || '').replace(/[\x00-\x09\x0B-\x1F\x7F-\x9F]/g, '').trim();
 }
 
 const state = {
   caseText: '',
-  conversations: {},
   mode: 'auto',           // 'auto' | 'role' | 'interactive'
   fixedUserRole: 'none',  // role 模式下用户扮演的角色
   globalMemory: '',
@@ -53,30 +50,39 @@ async function callBot(roleKey, prompt, onDelta) {
     const resp = await fetch('/api/chat/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role: roleKey, conversationId: state.conversations[roleKey] || null, message: prompt }),
+      body: JSON.stringify({ role: roleKey, message: prompt }),
       signal: controller.signal,
     });
 
+    if (!resp.ok) throw new Error(`对话请求失败（${resp.status}）`);
+
     let accumulated = '';
-    let errorMsg = '';
+    let errorText = '';
 
-    await parseCozeSSE(resp.body, ({ event, data }) => {
-      // 对话流会在首个事件里返回 conversation_id，复用即可保持该角色的庭审上下文
-      if (data.conversation_id) state.conversations[roleKey] = data.conversation_id;
+    await parseSSE(resp.body, ({ event, data, done }) => {
+      if (done) return;
 
+      // 后端 TTS/兼容写法：event: error
       if (event === 'error') {
-        errorMsg = data.msg || 'Coze 请求失败';
-      } else if (event === 'conversation.message.delta' && data.type === 'answer' && data.content) {
-        accumulated += sanitizeText(data.content);
-        if (onDelta) onDelta(accumulated);
-      } else if (event === 'conversation.message.completed' && data.type === 'answer' && !accumulated && data.content) {
-        accumulated = sanitizeText(data.content);
-        if (onDelta) onDelta(accumulated);
+        errorText = (data && data.msg) || '对话请求失败';
+        return;
+      }
+
+      // 后端约定：data: {"error": "..."}
+      if (data && data.error) {
+        errorText = data.error;
+        return;
+      }
+
+      // 后端约定：data: {"content": "..."}，只把纯增量交给打字机
+      if (data && data.content) {
+        accumulated += data.content;
+        if (onDelta) onDelta(data.content);
       }
     });
 
-    accumulated = sanitizeText(accumulated); // 兜底：吃掉流末尾多出来的脏字符
-    if (errorMsg) throw new Error(errorMsg);
+    accumulated = sanitizeText(accumulated);
+    if (errorText) throw new Error(errorText);
     return accumulated;
   } catch (e) {
     if (state.cancelled) return ''; // 用户中止庭审
@@ -130,8 +136,8 @@ async function executeStep(roleKey, stepName, promptTemplate) {
 
   if (window.onRealtimeStart) window.onRealtimeStart(displayRole, stepName, false);
 
-  let text = await callBot(roleKey, prompt, (partialText) => {
-    if (window.onRealtimeUpdate) window.onRealtimeUpdate(partialText);
+  let text = await callBot(roleKey, prompt, (delta) => {
+    if (window.onRealtimeUpdate) window.onRealtimeUpdate(delta);
   });
 
   if (state.cancelled) return '';
@@ -149,7 +155,6 @@ export async function runCourt({ caseText, onMessage, onAskTakeover, mode = 'aut
   state.mode = mode;
   state.fixedUserRole = userRole;
   state.globalMemory = `案情简介：${caseText}`;
-  state.conversations = {}; // 每场庭审重新建立对话流会话
   state.interruptRequested = false;
   state.cancelled = false;
   state.abortController = null;
@@ -190,4 +195,3 @@ export async function runCourt({ caseText, onMessage, onAskTakeover, mode = 'aut
   // 阶段六：宣判
   await executeStep('judge', '评议与宣判', `【当前阶段：评议与宣判】\n请宣读判决结果及理由。\n{context}`);
 }
-
